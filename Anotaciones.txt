@@ -1,0 +1,15 @@
+PARA LOS TOKENS:
+    keyBERT
+    Roberta: horrible
+    
+
+PARA CORREGIR EL TEXTO:
+    TextBlob -> solo sirve en inglés, pero parece bueno
+    language_tool_python -> no es muy bueno, solo corrige algunas cosas, nada sustancial (AL FINAL RESULTA SER EL MEJOR DE TODOS)
+    pyspellchecker -> es horrible
+
+
+PARA LOS RESÚMENES:
+    facebook/mbart-large-cc25 -> modelo multilingüístico, bastante malo 
+    Mixtral-8x7B-Instruct-v0.1 -> no disponible con API
+    mrm8488/bert2bert_shared-spanish-finetuned-summarization -> el mejor hasta ahora
