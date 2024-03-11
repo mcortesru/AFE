@@ -8,11 +8,12 @@ output = replicate.run(
     input={
         "debug": False,
         "top_p": 1,
-        "prompt": "Saca palabras clave de este texto en español:\n\n" + text,
+        "prompt": "Corrige las erratas de este texto:\n\n" + text,
         "temperature": 0.5,
-        "system_prompt": "Palabras clave en español",
-        "max_new_tokens": 500,
+        "system_prompt": "Corregir erratas en español",
+        "max_new_tokens": 10000,
         "min_new_tokens": -1
     }
 )
 print(''.join(output))
+
