@@ -40,3 +40,13 @@ def dividir_texto(texto, longitud_maxima=1024):
         segmentos.append(' '.join(segmento_actual))
 
     return segmentos
+
+
+def extraer_texto_por_pagina (ruta_pdf=FILE):
+    doc = fitz.open(ruta_pdf)
+    texto_por_pagina = []
+    for pagina in doc:
+        texto = pagina.get_text("text").strip()
+        texto_por_pagina.append(texto)
+    doc.close()
+    return texto_por_pagina

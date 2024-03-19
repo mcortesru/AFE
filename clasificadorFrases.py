@@ -1,4 +1,3 @@
-
 import spacy
 from spacy.training import Example
 import random
