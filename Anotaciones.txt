@@ -1,7 +1,11 @@
 PARA LOS TOKENS:
     keyBERT
     Roberta: horrible
-    
+
+PARA PALABRAS CLAVE:
+    Utilizando TF-IDF con Scikit-learn: funciona relativamente bien
+    Preguntar a llama2: funciona bien pero es difícil de manejarlas por código en un array, suelta un texto plano
+
 
 PARA CORREGIR EL TEXTO:
     TextBlob -> solo sirve en inglés, pero parece bueno
