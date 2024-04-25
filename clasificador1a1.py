@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import classification_report
 import random
+import time
 
 def extraer_texto(ruta):
     texto = ""
@@ -72,7 +73,7 @@ vectorizador = TfidfVectorizer(stop_words=stop_words_spanish, max_features=1000)
 
 # Cargar datos
 directorios_interes = None
-#archivos_para_prueba = mover_archivos_para_pruebas("/Users/administrador/Desktop/PDFs", n=2, directorios_interes=directorios_interes)
+archivos_para_prueba = mover_archivos_para_pruebas("/Users/administrador/Desktop/PDFs", n=4, directorios_interes=directorios_interes)
 textos, etiquetas = cargar_datos("/Users/administrador/Desktop/PDFs", directorios_interes)
 
 # Transformar datos y entrenar modelo
@@ -85,29 +86,36 @@ modelo.fit(X_train, y_train)
 # Predicción y evaluación
 y_pred = modelo.predict(X_test)
 
-# Evaluación detallada de cada archivo de prueba
-'''for archivo in archivos_para_prueba:
-    texto = extraer_texto(archivo)
+# Pedir al usuario que ingrese la ruta completa del archivo para probar
+ruta_archivo_usuario = input("Ingresa la ruta completa del archivo que quieres probar: ")
+
+# Definir un umbral de confianza
+umbral_confianza = 0.5  # Ajusta este valor según lo que consideres apropiado para tu modelo
+
+# Asegurarse de que el archivo existe
+if not os.path.isfile(ruta_archivo_usuario):
+    print(f"No se encontró el archivo: {ruta_archivo_usuario}")
+    restaurar_archivos('/Users/administrador/Desktop/PDFs')
+else:
+    texto = extraer_texto(ruta_archivo_usuario)
     X_prueba = vectorizador.transform([texto])
     pred_prob = modelo.predict_proba(X_prueba)[0]
     pred_label = modelo.predict(X_prueba)[0]
-    real_label = archivo.split('/')[-3]  # Asumiendo que la estructura de carpetas contiene la etiqueta
-    correcto = "Sí" if pred_label == real_label else "No"
-    print(f"Archivo: {archivo}")
-    print(f"Etiqueta real: {real_label}")
-    print(f"Etiqueta predicha: {pred_label}")
-    print(f"Predicción correcta: {correcto}")
-    print("Probabilidades de clase:")
-    for label, prob in zip(modelo.classes_, pred_prob):
-        print(f"{label}: {prob:.4f}")
-    print("\n")'''
+    confianza = max(pred_prob)
 
-# Restaurar archivos
-restaurar_archivos('/Users/administrador/Desktop/PDFs')
+    # Comprobar si la confianza de la predicción supera el umbral
+    if confianza < umbral_confianza:
+        print(f"El modelo no está seguro de la clasificación para el archivo {ruta_archivo_usuario}. La máxima probabilidad ({confianza:.4f}) es menor que el umbral de confianza ({umbral_confianza}).")
+    else:
+        print(f"Archivo: {ruta_archivo_usuario}")
+        print(f"Etiqueta predicha: {pred_label} con una confianza de {confianza:.4f}")
+        print("Probabilidades de clase:")
+        for label, prob in zip(modelo.classes_, pred_prob):
+            print(f"{label}: {prob:.4f}")
+        print("\n")
+    restaurar_archivos('/Users/administrador/Desktop/PDFs')
 
-# Estadísticas generales del modelo
-print("Estadísticas generales del modelo:")
-print(classification_report(y_test, y_pred))
+
 
 '''
 import pandas as pd

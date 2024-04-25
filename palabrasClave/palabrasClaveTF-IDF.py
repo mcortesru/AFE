@@ -7,8 +7,8 @@ import mylib
 spanish_stopwords = stopwords.words('spanish')
 
 def extraer_palabras_clave_tfidf(texto, top_n=10):
-    # Inicializar el vectorizador TF-IDF con las palabras de parada de NLTK
-    vectorizador = TfidfVectorizer(stop_words=spanish_stopwords)
+    # Inicializar el vectorizador TF-IDF con ajustes personalizados
+    vectorizador = TfidfVectorizer(stop_words=spanish_stopwords, max_df=3, min_df=0.5, max_features=10, ngram_range=(1, 2))
     
     # Ajustar y transformar el texto
     tfidf_matrix = vectorizador.fit_transform([texto])
@@ -20,7 +20,7 @@ def extraer_palabras_clave_tfidf(texto, top_n=10):
     suma_tfidf = tfidf_matrix.sum(axis=0)
     indices_ordenados = np.argsort(suma_tfidf).flatten()[::-1]
     
-    # Extraer las top n palabras clave
+    # Extraer las top n palabras clave, considerando los ajustes realizados
     palabras_clave = palabras[indices_ordenados][:top_n]
     
     return palabras_clave

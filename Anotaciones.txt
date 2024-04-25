@@ -1,6 +1,9 @@
 PARA LOS TOKENS:
     keyBERT
     Roberta: horrible
+    Spacy (es_core_news_sm): meh, a Ana no le gusta
+    NTKL: malillo
+    Cruce entre Spacy y NTKL
 
 PARA PALABRAS CLAVE:
     Utilizando TF-IDF con Scikit-learn: funciona relativamente bien
@@ -17,3 +20,9 @@ PARA LOS RESÚMENES:
     facebook/mbart-large-cc25 -> modelo multilingüístico, bastante malo 
     Mixtral-8x7B-Instruct-v0.1 -> no disponible con API
     mrm8488/bert2bert_shared-spanish-finetuned-summarization -> el mejor hasta ahora
+    meta/llama-2-70b-chat -> usando replicate para usarlo con api porque mis recursos de cómputo son limitados
+
+
+
+CLASIFICACIÓN MANUAL DE LOS PDS:
+

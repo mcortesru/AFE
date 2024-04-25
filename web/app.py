@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 def resumen(temp_path):
     print("Ejecutando resumen...")
-    result = subprocess.run(['python', 'resumenMixtral.py', temp_path], capture_output=True, text=True)
+    result = subprocess.run(['python', '../resumenMixtral.py', temp_path], capture_output=True, text=True)
     if result.stderr:
         print("Error al ejecutar el script de resumen:", result.stderr)
     return result.stdout if result.stdout else f"No se pudo obtener un resumen. Error: {result.stderr}"
@@ -50,8 +50,19 @@ def resumen(temp_path):
 def clasficacion (temp_path):
     return "Clasificando el documento..."
 
-def tokens (temp_path):
-    return "Obteniendo tokens del documento..."
+def tokens(temp_path):
+    print("Obteniendo tokens del documento...")
+    result = subprocess.run(['python', '../tokens.py', temp_path], capture_output=True, text=True)
+    
+    if result.stderr:
+        print("Error al ejecutar el script de tokens:", result.stderr)
+        return f"No se pudo obtener los tokens. Error: {result.stderr}"
+    
+    return result.stdout if result.stdout else "No se encontraron tokens."
 
 def palabras (temp_path):
-    return "Obteniendo palabras clave del documento..."
+    print ("Obteniendo palabras clave del documento...")
+    result = subprocess.run(['python', '../palabrasClaveMixtral.py', temp_path], capture_output=True, text=True)
+    if result.stderr:
+        print("Error al ejecutar el script de palabras clave:", result.stderr)
+    return result.stdout if result.stdout else f"No se pudo obtener las palabras clave. Error: {result.stderr}"
