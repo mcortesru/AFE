@@ -7,7 +7,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import classification_report
+from sklearn.ensemble import IsolationForest
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 import random
+
 
 def extraer_texto(ruta):
     texto = ""
@@ -16,7 +20,7 @@ def extraer_texto(ruta):
             texto += pagina.get_text()
     return texto
 
-def mover_archivos_para_pruebas(directorio, subdirectorio='PRUEBAS', n=4, directorios_interes=None):
+def mover_archivos_para_pruebas(directorio, subdirectorio='PRUEBAS', n=3, directorios_interes=None):
     if directorios_interes is None:
         directorios_interes = os.listdir(directorio)
     archivos_movidos = {}
@@ -54,6 +58,7 @@ def cargar_datos(directorio, directorios_interes=None):
         directorios_interes = [d for d in os.listdir(directorio) if os.path.isdir(os.path.join(directorio, d))]
     textos = []
     etiquetas = []
+    rutas = []
     for carpeta in directorios_interes:
         ruta_carpeta = os.path.join(directorio, carpeta)
         for archivo in os.listdir(ruta_carpeta):
@@ -62,7 +67,8 @@ def cargar_datos(directorio, directorios_interes=None):
                 texto_archivo = extraer_texto(ruta_archivo)
                 textos.append(texto_archivo)
                 etiquetas.append(carpeta)
-    return textos, etiquetas
+                rutas.append(ruta_archivo)
+    return textos, etiquetas, rutas
 
 
 # Configuración inicial
@@ -72,49 +78,39 @@ vectorizador = TfidfVectorizer(stop_words=stop_words_spanish, max_features=1000)
 
 # Cargar datos
 directorios_interes = None
-archivos_para_prueba = mover_archivos_para_pruebas("/Users/administrador/Desktop/PDFs", n=1, directorios_interes=directorios_interes)
-textos, etiquetas = cargar_datos("/Users/administrador/Desktop/PDFs", directorios_interes)
+archivos_para_prueba = mover_archivos_para_pruebas("/Users/administrador/Desktop/PDFs", n=4, directorios_interes=directorios_interes)
+textos, etiquetas, rutas_documentos = cargar_datos("/Users/administrador/Desktop/PDFs", directorios_interes)
 
-# Transformar datos y entrenar modelo
+# Transformar datos
 X = vectorizador.fit_transform(textos)
 y = etiquetas
+
+# Entrenar Isolation Forest para detectar documentos atípicos
+iso_forest = IsolationForest(n_estimators=100, contamination=0.05)  # 'auto' intenta estimar la contaminación
+iso_forest.fit(X)
+
+# Detectar si algún documento en el conjunto completo es una anomalía
+anomalias = iso_forest.predict(X)
+
+# Mostrar los documentos que son considerados anomalías
+print("Documentos considerados anomalías:")
+for i, is_anomaly in enumerate(anomalias):
+    if is_anomaly == -1:
+        print(f"Documento {rutas_documentos[i]} es una anomalía.")
+
+# Dividir los datos en entrenamiento y prueba
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Entrenar el modelo de clasificación
 modelo = MultinomialNB()
 modelo.fit(X_train, y_train)
 
 # Predicción y evaluación
 y_pred = modelo.predict(X_test)
 
-# Definir un umbral de confianza
-umbral_confianza = 0.6
-
-while True:
-    # Pedir al usuario que ingrese la ruta completa del archivo para probar
-    ruta_archivo_usuario = input("Ingresa la ruta completa del archivo que quieres probar: ")
-
-    # Asegurarse de que el archivo existe
-    if not os.path.isfile(ruta_archivo_usuario):
-        print(f"No se encontró el archivo: {ruta_archivo_usuario}")
-    else:
-        texto = extraer_texto(ruta_archivo_usuario)
-        X_prueba = vectorizador.transform([texto])
-        pred_prob = modelo.predict_proba(X_prueba)[0]
-        pred_label = modelo.predict(X_prueba)[0]
-        confianza = max(pred_prob)
-
-        # Comprobar si la confianza de la predicción supera el umbral
-        if confianza < umbral_confianza:
-            print(f"El modelo no está seguro de la clasificación para el archivo {ruta_archivo_usuario}. La máxima probabilidad ({confianza:.4f}) es menor que el umbral de confianza ({umbral_confianza}).")
-        else:
-            print(f"Archivo: {ruta_archivo_usuario}")
-            print(f"Etiqueta predicha: {pred_label} con una confianza de {confianza:.4f}")
-            print("Probabilidades de clase:")
-            for label, prob in zip(modelo.classes_, pred_prob):
-                print(f"{label}: {prob:.4f}")
-            print("\n")
-
-        respuesta = input("¿Deseas probar otro archivo? (s/n): ")
-    if respuesta.lower() != 's':
-        break
-
+# Restaurar archivos
 restaurar_archivos('/Users/administrador/Desktop/PDFs')
+
+# Estadísticas generales del modelo
+print("Estadísticas generales del modelo:")
+print(classification_report(y_test, y_pred))

@@ -5,6 +5,11 @@ PARA LOS TOKENS:
     NTKL: malillo
     Cruce entre Spacy y NTKL
 
+    Final: cruce entre esos 3
+      -https://huggingface.co/flair/ner-spanish-large
+      -https://huggingface.co/alvarobartt/bert-base-multilingual-cased-ner-spanish
+      -https://huggingface.co/MMG/xlm-roberta-large-ner-spanish  
+
 PARA PALABRAS CLAVE:
     Utilizando TF-IDF con Scikit-learn: funciona relativamente bien
     Preguntar a llama2: funciona bien pero es difícil de manejarlas por código en un array, suelta un texto plano
@@ -13,7 +18,9 @@ PARA PALABRAS CLAVE:
 PARA CORREGIR EL TEXTO:
     TextBlob -> solo sirve en inglés, pero parece bueno
     language_tool_python -> no es muy bueno, solo corrige algunas cosas, nada sustancial (AL FINAL RESULTA SER EL MEJOR DE TODOS)
-    pyspellchecker -> es horrible
+    pyspellchecker -> va bien
+    quitar los '- ' y los ~ manualmente
+
 
 
 PARA LOS RESÚMENES:
