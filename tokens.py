@@ -12,34 +12,79 @@ from prettytable import PrettyTable
 
 if len(sys.argv) < 2:
     # path_al_archivo = input("No se ha proporcionado el path del archivo. Por favor, introduce el path del archivo: ")   
-    path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-147.pdf" 
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-147.pdf" 
+     path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-68-69.pdf"
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-71.pdf"
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/005-11-30-33.pdf"  # MUY LARGO
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-165-168.pdf"
 else:
     path_al_archivo = sys.argv[1]
 
 try:
     texto_original = mylib.extraer_texto_pdf(path_al_archivo)
     texto_corregido = mylib.quitar_guion_y_espacio(texto_original)
-    # print(texto_corregido)
 
     # Paso 1: Recolectar datos de los tres modelos
+
+    # Span Marker Model (BERT)
+    from transformers import AutoTokenizer
+    from span_marker import SpanMarkerModel
+
+    # Cargar el tokenizador y el modelo
+    tokenizer = AutoTokenizer.from_pretrained("alvarobartt/bert-base-multilingual-cased-ner-spanish")
+    model = SpanMarkerModel.from_pretrained("alvarobartt/bert-base-multilingual-cased-ner-spanish")
+
+    def segmentar_texto(texto, max_length=400):
+        # Tokenizar el texto
+        tokens = tokenizer.tokenize(texto)
+        segmentos = []
+        current_segment = []
+        current_length = 0
+
+        for token in tokens:
+            if token.startswith("##"):
+                # Agregar el token al segmento actual si es una continuación de una palabra
+                current_segment.append(token)
+                current_length += 1
+            else:
+                # Comenzar un nuevo segmento si es necesario
+                if current_length >= max_length:
+                    segmento = tokenizer.convert_tokens_to_string(current_segment)
+                    segmentos.append(segmento)
+                    current_segment = []
+                    current_length = 0
+                current_segment.append(token)
+                current_length += 1
+
+        # Agregar el último segmento si contiene texto
+        if current_segment:
+            segmento = tokenizer.convert_tokens_to_string(current_segment)
+            segmentos.append(segmento)
+
+        return segmentos
+    
+    # Segmentar el texto
+    segmentos = segmentar_texto(texto_corregido)
+
+    # Procesar cada segmento con el modelo
+    for segmento in segmentos:
+        entities_bert = model.predict(segmento)
+
+
     # Flair
+    print("Procesando con Flair...")
     tagger_flair = SequenceTagger.load("flair/ner-spanish-large")
     sentence_flair = Sentence(texto_corregido)
     tagger_flair.predict(sentence_flair)
     entities_flair = [(entity.text, entity.tag, entity.score) for entity in sentence_flair.get_spans('ner')]
-
-    # Span Marker Model (BERT)
-    model_bert = SpanMarkerModel.from_pretrained("alvarobartt/bert-base-multilingual-cased-ner-spanish")
-    entities_bert = model_bert.predict(texto_corregido)
-
+    
     # XLM-Roberta
+    print("Procesando con XLM-Roberta...")
     API_URL = "https://api-inference.huggingface.co/models/MMG/xlm-roberta-large-ner-spanish"
     headers = {"Authorization": "Bearer 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"}
     response = requests.post(API_URL, headers=headers, json={"inputs": texto_corregido})
     output = response.json()
 
-
-    print(texto_corregido)
     print("\n\n")
     # Paso 2: Consolidar las entidades en un diccionario común
     # Consolidar las entidades en un diccionario común
@@ -104,7 +149,6 @@ try:
 
     # BUSCADOR DE FECHAS QUE NO FUNCIONA TAN BIEN
     # from dateutil.parser import parse
-    # print(texto_corregido)
     # def buscar_fechas(texto):
     #     palabras = texto.split()
     #     fechas = []
@@ -122,8 +166,6 @@ try:
 
 
     from dateparser.search import search_dates
-    import re
-
     resultados = search_dates(texto_corregido, languages=['es'])
 
     fechas_con_contexto = []
@@ -131,27 +173,40 @@ try:
 
     if resultados:
         for texto_fecha, fecha_obj in resultados:
-            fecha_formateada = fecha_obj.strftime("%Y-%m-%d")
             año = fecha_obj.year
-            if año <= 2000:
-                inicio = texto_corregido.find(texto_fecha)
-                start_context = max(inicio - 30, 0)
-                end_context = inicio + len(texto_fecha) + 30
-                contexto = texto_corregido[start_context:end_context].strip()
+            # Ajustar el año si es mayor a 2030, restando 100
+            if año > 2030:
+                fecha_obj = fecha_obj.replace(year=año - 100)
+                fecha_formateada = fecha_obj.strftime("%Y-%m-%d")
+            # Ignorar el año si está entre 2000 y 2030
+            elif 2000 <= año <= 2030:
+                fecha_formateada = fecha_obj.strftime("%m-%d")
+            # Si el año es menor de 2000, se mantiene el formato completo
+            else:
+                fecha_formateada = fecha_obj.strftime("%Y-%m-%d")
 
-                if fecha_formateada not in fechas_vistas:
-                    fechas_vistas.add(fecha_formateada)
-                    fechas_con_contexto.append({
-                        'fecha': fecha_formateada,
-                        'contexto': contexto,
-                        'texto_fecha': texto_fecha
-                    })
+            inicio = texto_corregido.find(texto_fecha)
+            start_context = max(inicio - 30, 0)
+            end_context = inicio + len(texto_fecha) + 30
+            contexto = texto_corregido[start_context:end_context].strip()
+
+            if fecha_formateada not in fechas_vistas:
+                fechas_vistas.add(fecha_formateada)
+                fechas_con_contexto.append({
+                    'fecha': fecha_formateada,
+                    'contexto': contexto,
+                    'texto_fecha': texto_fecha,
+                    'start_context': start_context,
+                    'end_context': end_context
+                })
 
     # Mostrar las fechas interpretadas y sus contextos
     print("FECHAS ENCONTRADAS:")
     for item in fechas_con_contexto:
-        print(f"Fecha: {item['fecha']}")
+        # print(f"\n\nFecha: {item['fecha']} \n\tTexto: {item['texto_fecha']} \n\tContexto: {item['contexto']} \n\tInicio - Fin: {item['start_context']} - {item['end_context']}")
+        print(f"\n\nFecha: {item['fecha']}")
 
+    print(texto_corregido)
 
 except Exception as e:
     print(f"Error al procesar el archivo: {e}")
