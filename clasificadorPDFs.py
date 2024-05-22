@@ -85,54 +85,9 @@ modelo.fit(X_train, y_train)
 # Predicción y evaluación
 y_pred = modelo.predict(X_test)
 
-# Evaluación detallada de cada archivo de prueba
-'''for archivo in archivos_para_prueba:
-    texto = extraer_texto(archivo)
-    X_prueba = vectorizador.transform([texto])
-    pred_prob = modelo.predict_proba(X_prueba)[0]
-    pred_label = modelo.predict(X_prueba)[0]
-    real_label = archivo.split('/')[-3]  # Asumiendo que la estructura de carpetas contiene la etiqueta
-    correcto = "Sí" if pred_label == real_label else "No"
-    print(f"Archivo: {archivo}")
-    print(f"Etiqueta real: {real_label}")
-    print(f"Etiqueta predicha: {pred_label}")
-    print(f"Predicción correcta: {correcto}")
-    print("Probabilidades de clase:")
-    for label, prob in zip(modelo.classes_, pred_prob):
-        print(f"{label}: {prob:.4f}")
-    print("\n")'''
-
 # Restaurar archivos
 restaurar_archivos('/Users/administrador/Desktop/PDFs')
 
 # Estadísticas generales del modelo
 print("Estadísticas generales del modelo:")
 print(classification_report(y_test, y_pred))
-
-'''
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Convertir listas a Series de pandas
-y_train_series = pd.Series(y_train)
-y_test_series = pd.Series(y_test)
-
-# Contar ocurrencias de cada clase
-train_counts = y_train_series.value_counts()
-test_counts = y_test_series.value_counts()
-
-# Crear gráficos para visualizar las distribuciones
-fig, axes = plt.subplots(1, 2, figsize=(14, 7), sharey=True)
-sns.barplot(x=train_counts.index, y=train_counts.values, ax=axes[0])
-axes[0].set_title('Distribución de Clases en el Conjunto de Entrenamiento')
-axes[0].set_xlabel('Clase')
-axes[0].set_ylabel('Cantidad')
-
-sns.barplot(x=test_counts.index, y=test_counts.values, ax=axes[1])
-axes[1].set_title('Distribución de Clases en el Conjunto de Prueba')
-axes[1].set_xlabel('Clase')
-
-plt.xticks(rotation=90)
-plt.show()
-'''

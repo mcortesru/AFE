@@ -11,3 +11,6 @@ circulares/
 circulares bis.zip
 CircularesDivididas/
 OtrosDocumentos
+
+logs*
+*.pkl

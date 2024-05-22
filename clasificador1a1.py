@@ -113,7 +113,7 @@ while True:
                 print(f"{label}: {prob:.4f}")
             print("\n")
 
-        respuesta = input("¿Deseas probar otro archivo? (s/n): ")
+    respuesta = input("¿Deseas probar otro archivo? (s/n): ")
     if respuesta.lower() != 's':
         break
 
