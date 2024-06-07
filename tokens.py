@@ -206,8 +206,6 @@ try:
         # print(f"\n\nFecha: {item['fecha']} \n\tTexto: {item['texto_fecha']} \n\tContexto: {item['contexto']} \n\tInicio - Fin: {item['start_context']} - {item['end_context']}")
         print(f"\n\nFecha: {item['fecha']}")
 
-    print(texto_corregido)
-
 except Exception as e:
     print(f"Error al procesar el archivo: {e}")
     sys.exit(1)

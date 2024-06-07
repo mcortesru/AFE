@@ -2,8 +2,8 @@ import sys
 import replicate
 import mylib
 
-# export REPLICATE_API_TOKEN=r8_NR3kLxhtZqIte3dMARbxiQthIBAi2jf4QWhTy
 # export REPLICATE_API_TOKEN=r8_9P0pn1CqVUQwidMfCVO8vVhB0GZCtSJ2x2UD0
+
 
 if len(sys.argv) < 2:
     # path_al_archivo = input("No se ha proporcionado el path del archivo. Por favor, introduce el path del archivo: ")   
