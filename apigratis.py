@@ -34,5 +34,15 @@ api_request_json = {
 }
 
 # Make your request and handle the response
-response = llama.run(api_request_json)
-print(json.dumps(response.json()['choices'][0]['message']['content'], ensure_ascii=False))
+try:
+    response = llama.run(api_request_json)
+    if response.status_code == 200 and response.headers['Content-Type'] == 'application/json':
+        print(json.dumps(response.json()['choices'][0]['message']['content'], ensure_ascii=False))
+    else:
+        print(f"Error: HTTP {response.status_code} - {response.text}")
+except requests.exceptions.RequestException as e:
+    print(f"Network error: {e}")
+except json.JSONDecodeError as e:
+    print(f"Error decoding JSON: {e}")
+except KeyError as e:
+    print(f"Unexpected JSON structure: {e}")
