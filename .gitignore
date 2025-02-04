@@ -1,9 +1,6 @@
 # Bytecode de Python
 __pycache__/
 
-# Entornos virtuales
-myenv/
-
 #IDEA
 .idea/
 

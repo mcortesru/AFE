@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: llama2
+Version: 0.0.1.dev0
+Summary: llama2
+Author: juncongmoo
+Keywords: llama2
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch
+

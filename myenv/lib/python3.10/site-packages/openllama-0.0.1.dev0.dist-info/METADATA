@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: openllama
+Version: 0.0.1.dev0
+Summary: openllama
+Author: Juncong Moo
+Keywords: openllama
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Description-Content-Type: text/markdown
+Requires-Dist: torch
+

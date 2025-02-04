@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subida de Documentos y Procesamiento</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="upload-section">
+            <label for="file-upload">Sube un documento:</label>
+            <input type="file" id="file-upload">
+        </div>
+        <div class="buttons-section">
+            <button onclick="processFile('resumen')">Resume el documento</button>
+            <button onclick="processFile('clasificacion')">Clasifica el documento</button>
+            <button onclick="processFile('tokens')">Obten los NERs</button>
+            <button onclick="processFile('palabras')">Obten las palabras clave</button>
+        </div>
+        <div class="output-section">
+            <p id="output">Aquí aparecerá el texto procesado.</p>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

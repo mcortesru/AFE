@@ -65,7 +65,7 @@ stop_words_spanish = stopwords.words('spanish')
 vectorizador = TfidfVectorizer(stop_words=stop_words_spanish, max_features=1000)
 
 # Reservar archivos para pruebas
-reservar_pruebas("/Users/administrador/Desktop/PDFs", num_pruebas=1)
+reservar_pruebas("/Users/administrador/Desktop/PDFs", num_pruebas=20)
 
 # Cargar y procesar datos
 textos, etiquetas = cargar_datos("/Users/administrador/Desktop/PDFs")
@@ -90,7 +90,9 @@ evaluate_model(best_model)
 final_model = finalize_model(best_model)
 
 # Guardar el modelo
+import joblib
 save_model(final_model, 'final_model')
+joblib.dump(vectorizador, '/Users/administrador/AFE/vectorizador.pkl')
 
 # Cargar los ficheros de prueba
 textos_pruebas, etiquetas_pruebas = cargar_datos_pruebas("/Users/administrador/Desktop/PDFs")

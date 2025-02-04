@@ -26,6 +26,6 @@ def extraer_palabras_clave_tfidf(texto, top_n=10):
     return palabras_clave
 
 # Asegúrate de reemplazar "Tu texto extraído del PDF aquí" con el texto real extraído de tu PDF
-texto_pdf = mylib.extraer_texto_pdf()
+texto_pdf = mylib.extraer_texto_pdf("/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-71.pdf")
 palabras_clave = extraer_palabras_clave_tfidf(texto_pdf)
 print("Palabras clave:", palabras_clave)

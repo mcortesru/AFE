@@ -9,6 +9,10 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import classification_report
 from sklearn.ensemble import IsolationForest
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import accuracy_score, f1_score, cohen_kappa_score, matthews_corrcoef
 
 import random
 
@@ -114,3 +118,29 @@ restaurar_archivos('/Users/administrador/Desktop/PDFs')
 # Estadísticas generales del modelo
 print("Estadísticas generales del modelo:")
 print(classification_report(y_test, y_pred))
+cm = confusion_matrix(y_test, y_pred, labels=["ACTAS", "CARTAS", "CUESTIONARIO"])
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=["ACTAS", "CARTAS", "CUESTIONARIO"], yticklabels=["ACTAS", "CARTAS", "CUESTIONARIO"])
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.show()
+
+print (cm)
+
+print("Lo nuevo para el tfg:")
+# Calcula la precisión (Accuracy)
+accuracy = accuracy_score(y_test, y_pred)
+print("Precisión (Accuracy):", accuracy)
+
+# Calcula el F1-Score (puedes ajustar el promedio según sea necesario: 'micro', 'macro', 'weighted')
+f1 = f1_score(y_test, y_pred, average='macro')
+print("F1-Score:", f1)
+
+# Calcula el Coeficiente Kappa de Cohen
+kappa = cohen_kappa_score(y_test, y_pred)
+print("Kappa de Cohen:", kappa)
+
+# Calcula el Coeficiente de Correlación de Matthews (MCC)
+mcc = matthews_corrcoef(y_test, y_pred)
+print("Coeficiente de Correlación de Matthews (MCC):", mcc)
