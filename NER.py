@@ -21,10 +21,10 @@ if len(sys.argv) < 2:
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-147.pdf" 
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-68-69.pdf"
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-71.pdf"
-    # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/005-11-30-33.pdf"  # MUY LARGO
+     path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/ACTAS/005-11-30-33.pdf"  # MUY LARGO
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-165-168.pdf"
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-155.pdf"
-     path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-154.pdf"
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-154.pdf"
 
 else:
     path_al_archivo = sys.argv[1]
@@ -37,48 +37,51 @@ try:
 
     # Paso 1: Recolectar datos de los tres modelos
     # Span Marker Model (BERT)
+    print("procesando con BERT")
     from transformers import AutoTokenizer
     from span_marker import SpanMarkerModel
 
     # Cargar el tokenizador y el modelo
     tokenizer = AutoTokenizer.from_pretrained("alvarobartt/bert-base-multilingual-cased-ner-spanish")
     model = SpanMarkerModel.from_pretrained("alvarobartt/bert-base-multilingual-cased-ner-spanish")
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    def segmentar_texto(texto, max_length=400):
-        # Tokenizar el texto
-        tokens = tokenizer.tokenize(texto)
+    def segmentar_texto(texto, max_length=512):
+        # Tokenizar el texto de entrada en subpalabras
+        tokenized = tokenizer.encode_plus(texto, add_special_tokens=True, truncation=True, return_tensors="pt")
+        input_ids = tokenized["input_ids"][0].tolist()  # Convertir a lista de enteros
+
+        # Dividir el texto en fragmentos de tamaño máximo permitido
         segmentos = []
-        current_segment = []
-        current_length = 0
-
-        for token in tokens:
-            if token.startswith("##"):
-                # Agregar el token al segmento actual si es una continuación de una palabra
-                current_segment.append(token)
-                current_length += 1
-            else:
-                # Comenzar un nuevo segmento si es necesario
-                if current_length >= max_length:
-                    segmento = tokenizer.convert_tokens_to_string(current_segment)
-                    segmentos.append(segmento)
-                    current_segment = []
-                    current_length = 0
-                current_segment.append(token)
-                current_length += 1
-
-        # Agregar el último segmento si contiene texto
-        if current_segment:
-            segmento = tokenizer.convert_tokens_to_string(current_segment)
-            segmentos.append(segmento)
+        start = 0
+        while start < len(input_ids):
+            end = min(start + max_length - 2, len(input_ids))  # Restar 2 para espacio de [CLS] y [SEP]
+            segment = input_ids[start:end]
+            
+            # Convertir de nuevo a texto
+            segment_text = tokenizer.decode(segment, skip_special_tokens=True)
+            segmentos.append(segment_text)
+            start = end  # Mover al siguiente fragmento
 
         return segmentos
     
-    # Segmentar el texto
+    # Segmentar el texto correctamente
     segmentos = segmentar_texto(texto_corregido)
+    print(f"Texto segmentado en {len(segmentos)} partes.")
 
     # Procesar cada segmento con el modelo
-    for segmento in segmentos:
-        entities_bert = model.predict(segmento)
+    entities_bert = []
+    for i, segmento in enumerate(segmentos):
+        print(f"Procesando segmento {i+1}/{len(segmentos)}...")
+
+        try:
+            entidades = model.predict(segmento)
+            entities_bert.extend(entidades)
+        except Exception as e:
+            print(f"❌ Error en segmento {i+1}: {e}")
+
+    print("Entidades detectadas:", entities_bert)
+
 
     # Flair
     print("Procesando con Flair...")

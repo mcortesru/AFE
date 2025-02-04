@@ -133,3 +133,9 @@ fitz==-0.0.1.dev2
 frontend==0.03
 tools==0.1.9
 pymupdf==1.25.2
+nltk==3.9.1
+pycaret==3.3.2
+flair==0.15.0
+span_marker==1.7.0
+prettytable==3.14.0
+dateparser==1.2.0
