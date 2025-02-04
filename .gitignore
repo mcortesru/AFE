@@ -12,3 +12,4 @@ OtrosDocumentos
 logs*
 *.pklmyenv/
 myenv/
+test_env/

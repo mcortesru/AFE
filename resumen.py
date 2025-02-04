@@ -1,5 +1,6 @@
 import json
 from llamaapi import LlamaAPI
+import requests
 import sys
 import mylib
 
@@ -24,35 +25,35 @@ except Exception as e:
     print(f"Error al procesar el archivo: {e}")
     sys.exit(1)
 
-# Initialize the LlamaAPI with your API token
+# 📌 Inicializar LlamaAPI
 api_token = "LL-Z8mrEuQPmlMauJWuXwIDlnoi9bFiSlFqiYQSx8E3lEfEleU7Zt5YB3qGUgeKOf2e"
 llama = LlamaAPI(api_token)
 
+# 📌 Construcción de la solicitud
 api_request_json = {
-  "model": "llama3-70b",
-  "messages": [
-    {"role": "system", "content": "Resume este texto:\n"},
-    {"role": "user", "content": texto},
-  ]
+    "model": "llama3.1-70b",
+    "messages": [
+        {"role": "system", "content": "Resume este texto en pocas palabras:"},
+        {"role": "user", "content": texto},
+    ],
+    "stream": False
 }
 
-# Make your request and handle the response
+# 📌 Hacer la solicitud y obtener solo el resumen
 try:
     response = llama.run(api_request_json)
-    if response.status_code == 200 and response.headers['Content-Type'] == 'application/json':
-        content = response.json()['choices'][0]['message']['content']
-        last_dot = content.rfind('.')
-        last_newline = content.rfind('\n')
-        cut_position = max(last_dot, last_newline)
-        content = content[:cut_position+1]
+    response_json = response.json()
 
-        # Imprime el contenido recortado
-        print(json.dumps(content, ensure_ascii=False))
+    # 📌 Extraer solo el contenido del resumen
+    if isinstance(response_json, dict) and "choices" in response_json:
+        choices = response_json["choices"]
+        if isinstance(choices, list) and len(choices) > 0 and "message" in choices[0]:
+            content = choices[0]["message"].get("content", "")
+            print(content)  # 🔥 Solo imprime el resumen
+        else:
+            print("⚠️ Error: No se encontró un resumen válido.")
     else:
-        print(f"Error: HTTP {response.status_code} - {response.text}")
-except requests.exceptions.RequestException as e:
-    print(f"Network error: {e}")
-except json.JSONDecodeError as e:
-    print(f"Error decoding JSON: {e}")
-except KeyError as e:
-    print(f"Unexpected JSON structure: {e}")
+        print("⚠️ Error: La API devolvió un JSON inesperado.")
+
+except Exception as e:
+    print(f"❌ Error: {e}")

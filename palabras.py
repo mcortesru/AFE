@@ -2,6 +2,7 @@ import json
 from llamaapi import LlamaAPI
 import sys
 import mylib
+import requests
 
 def find_last_number(content):
     last_index = -1
@@ -35,35 +36,34 @@ except Exception as e:
     print(f"Error al procesar el archivo: {e}")
     sys.exit(1)
 
-# Initialize the LlamaAPI with your API token
+# 📌 Inicializar LlamaAPI con tu API Key
 api_token = "LL-Z8mrEuQPmlMauJWuXwIDlnoi9bFiSlFqiYQSx8E3lEfEleU7Zt5YB3qGUgeKOf2e"
 llama = LlamaAPI(api_token)
 
+# 📌 Construcción de la solicitud
 api_request_json = {
-  "model": "llama3-70b",
-  "messages": [
-    {"role": "system", "content": "Saca las palabras clave de este texto:\n"},
-    {"role": "user", "content": texto},
-  ]
+    "model": "llama3.1-70b",  # 🔹 Usa un modelo válido
+    "messages": [
+        {"role": "system", "content": "Extrae las palabras clave de este texto:"},
+        {"role": "user", "content": texto},
+    ],
+    "stream": False
 }
 
-# Make your request and handle the response
+
+# 📌 Hacer la solicitud y manejar la respuesta
 try:
     response = llama.run(api_request_json)
-    if response.status_code == 200 and response.headers['Content-Type'] == 'application/json':
-        content = response.json()['choices'][0]['message']['content']
-        last_newline = content.rfind('\n')
+    response_json = response.json()
 
-        if last_newline != -1:
-            content = content[:last_newline]
-
-        # Imprime el contenido recortado
-        print(json.dumps(content, ensure_ascii=False))
+    # 📌 Verificar si la respuesta es válida
+    if isinstance(response_json, dict) and "choices" in response_json:
+        choices = response_json["choices"]
+        if isinstance(choices, list) and len(choices) > 0 and "message" in choices[0]:
+            content = choices[0]["message"].get("content", "")
+            print(content)  # 🔥 Solo imprime las palabras clave
     else:
-        print(f"Error: HTTP {response.status_code} - {response.text}")
-except requests.exceptions.RequestException as e:
-    print(f"Network error: {e}")
-except json.JSONDecodeError as e:
-    print(f"Error decoding JSON: {e}")
-except KeyError as e:
-    print(f"Unexpected JSON structure: {e}")
+        sys.exit("⚠️ Error: No se encontraron palabras clave.")
+
+except Exception:
+    sys.exit("⚠️ Error al procesar la solicitud.")
