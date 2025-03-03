@@ -79,3 +79,23 @@ tbody tr:hover {
 }
 
 
+.chat-box {
+    border: 1px solid #ccc;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.user-message {
+    background-color: #d1e7fd;
+    padding: 5px;
+    border-radius: 5px;
+    text-align: right;
+}
+
+.bot-message {
+    background-color: #f1f1f1;
+    padding: 5px;
+    border-radius: 5px;
+    text-align: left;
+}

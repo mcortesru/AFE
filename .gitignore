@@ -13,3 +13,5 @@ logs*
 *.pklmyenv/
 myenv/
 test_env/
+
+*/chroma_db

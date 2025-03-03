@@ -4,17 +4,6 @@ import sys
 import mylib
 import requests
 
-def find_last_number(content):
-    last_index = -1
-    # Recorre la cadena en reversa
-    for i in range(len(content) - 1, -1, -1):
-        if content[i].isdigit():
-            last_index = i
-        elif last_index != -1:
-            # Retorna el índice justo después del último dígito numérico encontrado
-            return last_index
-    return last_index
-
 
 if len(sys.argv) < 2:
     # path_al_archivo = input("No se ha proporcionado el path del archivo. Por favor, introduce el path del archivo: ")   
@@ -24,8 +13,8 @@ if len(sys.argv) < 2:
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/005-11-30-33.pdf"  # MUY LARGO
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-165-168.pdf"
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-155.pdf"
-   path_al_archivo = "/Users/administrador/Desktop/PDFs/CUESTIONARIO/PRUEBAS/ACE_JAC_5A_01-25.pdf"
-   path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-89.pdf"
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/CUESTIONARIO/PRUEBAS/ACE_JAC_5A_01-25.pdf"
+   path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/ACTAS/004-07-89.pdf"
 
 else:
     path_al_archivo = sys.argv[1]

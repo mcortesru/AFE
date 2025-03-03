@@ -1,8 +1,57 @@
+document.addEventListener("DOMContentLoaded", function () {
+    function toggleSections(showChat) {
+        if (showChat) {
+            document.getElementById("output").style.display = "none";
+            document.getElementById("chat-section").style.display = "block";
+        } else {
+            document.getElementById("output").style.display = "block";
+            document.getElementById("chat-section").style.display = "none";
+        }
+    }
+
+    window.showChat = function () {
+        toggleSections(true);
+    };
+
+    window.sendMessage = function () {
+        const chatBox = document.getElementById("chat-box");
+        const chatInput = document.getElementById("chat-input");
+    
+        if (chatInput.value.trim() !== "") {
+            const userMessage = document.createElement("p");
+            userMessage.classList.add("user-message");
+            userMessage.textContent = chatInput.value;
+            chatBox.appendChild(userMessage);
+    
+            fetch("/chatbot", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pregunta: chatInput.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botMessage = document.createElement("p");
+                botMessage.classList.add("bot-message");
+                botMessage.textContent = data.respuesta;
+                chatBox.appendChild(botMessage);
+            });
+    
+            chatInput.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    };
+});
+
+
+
 function processFile(buttonId) {
     const outputElement = document.getElementById('output');
     const formData = new FormData();
     formData.append('file', document.getElementById('file-upload').files[0]);
     formData.append('buttonId', buttonId);
+
+    document.getElementById("output").style.display = "block";
+    document.getElementById("chat-section").style.display = "none";
 
     if (buttonId === 'resumen'){
         outputElement.textContent = 'Resuminedo texto...';

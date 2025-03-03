@@ -17,9 +17,15 @@
             <button onclick="processFile('clasificacion')">Clasifica el documento</button>
             <button onclick="processFile('tokens')">Obten los NERs</button>
             <button onclick="processFile('palabras')">Obten las palabras clave</button>
+            <button onclick="showChat()">Abrir chatbot</button>
         </div>
         <div class="output-section">
             <p id="output">Aquí aparecerá el texto procesado.</p>
+        </div>
+        <div class="chat-section" id="chat-section" style="display: none;">
+            <div class="chat-box" id="chat-box"></div>
+            <input type="text" id="chat-input" placeholder="Escribe tu pregunta...">
+            <button onclick="sendMessage()">Enviar</button>
         </div>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>

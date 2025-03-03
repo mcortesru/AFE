@@ -3,10 +3,18 @@ from flask_cors import CORS
 import subprocess
 from werkzeug.utils import secure_filename
 import os
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG)
+print("Iniciando Flask...")
+
 
 app = Flask(__name__)
 CORS(app)
 
+TMP_DIR = "/tmp"
+PREGUNTA_FILE = os.path.join(TMP_DIR, "pregunta.txt")
+RESPUESTA_FILE = os.path.join(TMP_DIR, "respuesta.txt")
 
 def resumen(temp_path):
     print("Ejecutando resumen...")
@@ -89,7 +97,36 @@ def process_file():
     else:
         return jsonify({"message": "No se recibió ningún archivo"})
 
+@app.route("/chatbot", methods=["POST"])
+def preguntar_chatbot():
+    data = request.get_json()
+    pregunta = data.get("pregunta", "").strip()
 
+    if pregunta:
+        # Escribir la pregunta en un archivo
+        with open(PREGUNTA_FILE, "w") as f:
+            f.write(pregunta)
+
+        # Ejecutar el chatbot y capturar su salida
+        result = subprocess.run(["python", "../chromadb_open.py", "--flask"], capture_output=True, text=True)
+
+        print(f"[INFO] Chatbot stdout: {result.stdout}")
+        if result.stderr:
+            print(f"[ERROR] Error ejecutando chromadb_open.py: {result.stderr}")
+
+        # Verificar si el archivo de respuesta existe
+        if os.path.exists(RESPUESTA_FILE):
+            with open(RESPUESTA_FILE, "r") as f:
+                respuesta = f.read().strip()
+            os.remove(RESPUESTA_FILE)
+            print(f"[INFO] Respuesta obtenida: {respuesta}")
+        else:
+            print("[ERROR] El archivo de respuesta no fue generado por chatbot.py.")
+            respuesta = "No se obtuvo respuesta del chatbot."
+
+        return jsonify({"respuesta": respuesta})
+
+    return jsonify({"respuesta": "No se envió ninguna pregunta."})
 
 if __name__ == '__main__':
     app.run(debug=True)
