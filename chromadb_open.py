@@ -5,6 +5,7 @@ import os
 from sentence_transformers import SentenceTransformer
 from chromadb.utils import embedding_functions
 import openai
+import shutil
 
 TMP_DIR = "/tmp"
 PREGUNTA_FILE = os.path.join(TMP_DIR, "pregunta.txt")
@@ -14,6 +15,7 @@ RESPUESTA_FILE = os.path.join(TMP_DIR, "respuesta.txt")
 USE_CLOUD = os.getenv("USE_CLOUD", "false").lower() == "true"
 OPENAI_API_KEY = "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"
 INDEX_NAME = "documentos"
+CHROMA_DB_PATH = "./chroma_db"
 
 print("[INFO] Iniciando ejecución del chatbot...")
 
@@ -21,7 +23,7 @@ print("[INFO] Iniciando ejecución del chatbot...")
 modo_flask = "--flask" in sys.argv
 if not modo_flask:
     if len(sys.argv) < 2:
-        path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/ACTAS/004-07-89.pdf"
+        path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/CARTAS/005-10-18.pdf"
     else:
         path_al_archivo = sys.argv[1]
 else:
@@ -34,6 +36,8 @@ try:
 except Exception as e:
     print(f"[ERROR] Error al procesar el archivo: {e}")
     sys.exit(1)
+texto = "Mi nombre es Juan"
+#texto = "Mi apellido es Perez"
 ###
 ### Dividir el texto en fragmentos (chunks)
 def dividir_texto(texto, tamano=500):
@@ -48,13 +52,39 @@ print(f"[INFO] Texto dividido en {len(chunks)} fragmentos.")
 print("[INFO] Cargando modelo de embeddings...")
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-
 print("[INFO] Usando ChromaDB local para almacenamiento...")
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection("documentos")
+chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+collection_name = "chatbot_collection"
+
+# **1️⃣ Eliminar la colección existente**
+try:
+    chroma_client.delete_collection(name=collection_name)
+    print(f"[INFO] Se eliminó la colección existente: {collection_name}")
+except Exception:
+    print(f"[INFO] No se encontró la colección {collection_name}, creando una nueva.")
+
+# **2️⃣ Eliminar archivos residuales en la carpeta `chroma_db/` excepto `chroma.sqlite3`**
+for file in os.listdir(CHROMA_DB_PATH):
+    file_path = os.path.join(CHROMA_DB_PATH, file)
+    if file != "chroma.sqlite3":  # Mantener la base de datos principal
+        try:
+            if os.path.isdir(file_path):
+                shutil.rmtree(file_path)  # Borrar carpetas
+            else:
+                os.remove(file_path)  # Borrar archivos
+            print(f"[INFO] Archivo eliminado: {file_path}")
+        except Exception as e:
+            print(f"[ERROR] No se pudo eliminar {file_path}: {e}")
+
+# **3️⃣ Crear una nueva colección vacía**
+collection = chroma_client.create_collection(name=collection_name)
+print("[INFO] ChromaDB está listo para indexar documentos.")
+
+# Indexar el nuevo documento con IDs únicos
 for i, chunk in enumerate(chunks):
     vector = model.encode(chunk).tolist()
-    collection.add(embeddings=[vector], documents=[chunk], ids=[str(i)])
+    collection.add(embeddings=[vector], documents=[chunk], ids=[str(i)])  # IDs solo con el índice
+
 print("[INFO] Documentos indexados en ChromaDB.")
 
 ###
