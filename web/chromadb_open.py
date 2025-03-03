@@ -8,8 +8,9 @@ from sentence_transformers import SentenceTransformer
 from chromadb.utils import embedding_functions
 import openai
 from flask_cors import CORS
-import mylib  # Asegúrate de que `mylib` contiene la función `extraer_texto_pdf`
-
+import sys
+sys.path.append('../mylib')
+from textos import extraer_texto_pdf
 # Configuración del servidor Flask
 app = Flask(__name__)
 CORS(app)
@@ -88,7 +89,7 @@ def procesar_documento(path_al_archivo):
     collection = resetear_chromaDB()  # Asignar la colección aquí
 
     try:
-        texto_documento = mylib.extraer_texto_pdf(path_al_archivo)
+        texto_documento = extraer_texto_pdf(path_al_archivo)
         print("[INFO] Texto extraído correctamente.")
     except Exception as e:
         print(f"[ERROR] Error al procesar el archivo {path_al_archivo}: {e}")
@@ -159,7 +160,7 @@ def chatbot_inicializar(documento=None):
         documento = DEFAULT_DOC_PATH
 
     if procesar_documento(documento):
-        print("[INFO] Chatbot inicializado correctamente.")
+        print("[INFO] Chatbot inicializado correctamente con {documento}.")
         return True
     else:
         print("[ERROR] No se pudo procesar el documento.")

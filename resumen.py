@@ -15,6 +15,7 @@ if len(sys.argv) < 2:
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-155.pdf"
    path_al_archivo = "/Users/administrador/Desktop/PDFs/CUESTIONARIO/PRUEBAS/ACE_JAC_5A_01-25.pdf"
    path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-89.pdf"
+   path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/CARTAS/005-08-1-2.pdf"
 
 else:
     path_al_archivo = sys.argv[1]
@@ -33,9 +34,13 @@ llama = LlamaAPI(api_token)
 api_request_json = {
     "model": "llama3.1-70b",
     "messages": [
-        {"role": "system", "content": "Resume este texto en pocas palabras:"},
+        {"role": "system", "content": "Resume el siguiente texto completo brevemente:"},
         {"role": "user", "content": texto},
     ],
+    "max_token": 500,  # Asegura que el resumen pueda ser más largo si es necesario
+    "temperature": 0.3,  # Reduce la creatividad para obtener un resumen más preciso
+    "top_p": 0.9,  # Mantiene coherencia en la respuesta
+    "frequency_penalty": 0.5,  # Evita repeticiones innecesarias
     "stream": False
 }
 

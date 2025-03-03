@@ -75,6 +75,7 @@ def resetear_chromaDB():
 
 
 # Función para procesar un documento y almacenarlo en ChromaDB
+# Función para procesar un documento y almacenarlo en ChromaDB
 def procesar_documento(path_al_archivo):
     """ Procesa un solo documento y lo indexa en ChromaDB. """
     global texto_documento, collection  # Asegúrate de que 'collection' es global
@@ -151,41 +152,50 @@ def generar_respuesta(texto_relevante, pregunta):
             return texto_relevante  # Fallback a ChromaDB
     return texto_relevante
 
+# **Ruta para el chatbot API**
+@app.route("/chatbot", methods=["POST"])
+def chatbot():
+    data = request.json
+    pregunta = data.get("pregunta", "")
 
-def chatbot_inicializar(documento=None):
-    """ Inicializa el chatbot con un documento. """
+    if not pregunta:
+        return jsonify({"error": "No se recibió ninguna pregunta"}), 400
+
+    texto_relevante = buscar_respuesta(pregunta)
+    respuesta = generar_respuesta(texto_relevante, pregunta)
+
+    return jsonify({"respuesta": respuesta})
+
+# **Chatbot interactivo en terminal**
+def chatbot_interactivo(documento):
+    """ Ejecuta el chatbot interactivo con un solo documento. """
     if not documento:
         print(f"[INFO] No se proporcionó documento. Usando por defecto: {DEFAULT_DOC_PATH}")
         documento = DEFAULT_DOC_PATH
 
     if procesar_documento(documento):
-        print("[INFO] Chatbot inicializado correctamente.")
-        return True
-    else:
-        print("[ERROR] No se pudo procesar el documento.")
-        return False
-
-def chat(pregunta):
-    """ Recibe una pregunta y devuelve una respuesta basada en el documento procesado. """
-    if not pregunta.strip():
-        return "Por favor, introduce una pregunta válida."
-    
-    texto_relevante = buscar_respuesta(pregunta)
-    respuesta = generar_respuesta(texto_relevante, pregunta)
-    return respuesta
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Cargar documento en ChromaDB y ejecutar chatbot interactivo.")
-    parser.add_argument("documento", nargs="?", help="Especificar documento")
-
-    args = parser.parse_args()
-    
-    if chatbot_inicializar(args.documento):
         print("\n[INFO] Chatbot interactivo iniciado. Escribe 'salir' para terminar.")
         while True:
             pregunta = input("\nTú: ")
             if pregunta.lower() == "salir":
                 print("[INFO] Chatbot finalizado.")
                 break
-            respuesta = chat(pregunta)
+            texto_relevante = buscar_respuesta(pregunta)
+            respuesta = generar_respuesta(texto_relevante, pregunta)
             print(f"Bot: {respuesta}")
+    else:
+        print("[ERROR] No se pudo procesar el documento. Saliendo...")
+
+# **Manejo de modos de ejecución**
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Ejecutar el chatbot en modo servidor o interactivo.")
+    parser.add_argument("--modo", choices=["servidor", "interactivo"], default="interactivo", help="Seleccionar modo de ejecución")
+    parser.add_argument("documento", nargs="?", help="Ruta del documento a procesar (opcional en modo interactivo)")
+
+    args = parser.parse_args()
+
+    if args.modo == "servidor":
+        print("[INFO] Iniciando chatbot en modo servidor...")
+        app.run(host="0.0.0.0", port=5001, debug=True)
+    elif args.modo == "interactivo":
+        chatbot_interactivo(args.documento)

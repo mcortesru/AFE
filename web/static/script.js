@@ -1,89 +1,106 @@
 document.addEventListener("DOMContentLoaded", function () {
+    let documentUploaded = false;  // Rastrea si se ha subido un archivo
+
     function toggleSections(showChat) {
+        let chatSection = document.getElementById("chat-section");
         if (showChat) {
-            document.getElementById("output").style.display = "none";
-            document.getElementById("chat-section").style.display = "block";
+            chatSection.style.display = "block";
         } else {
-            document.getElementById("output").style.display = "block";
-            document.getElementById("chat-section").style.display = "none";
+            chatSection.style.display = "none";
         }
     }
 
-    window.showChat = function () {
-        toggleSections(true);
+    window.processFile = function (buttonId) {
+        const outputElement = document.getElementById('output');
+        const fileInput = document.getElementById('file-upload');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert("Por favor, selecciona un archivo antes de procesarlo.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('buttonId', buttonId);
+
+        document.getElementById("output").style.display = "block";
+        document.getElementById("chat-section").style.display = "none";
+
+        if (buttonId === 'resumen') {
+            outputElement.textContent = 'Resumiendo texto...';
+        } else if (buttonId === 'clasificacion') {
+            outputElement.textContent = 'Clasificando texto...';
+        } else if (buttonId === 'tokens') {
+            outputElement.textContent = 'Obteniendo NERs del texto...';
+        } else if (buttonId === 'palabras') {
+            outputElement.textContent = 'Obteniendo palabras clave del texto...';
+        } else if (buttonId === 'chatbot') {
+            outputElement.textContent = 'Cargando chatbot...';
+        }
+
+        fetch('http://127.0.0.1:5000/process', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Respuesta de red no fue ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (buttonId === 'chatbot') {
+                documentUploaded = true; // Se confirma que el documento fue subido
+                toggleSections(true);  // Mostrar el chat
+                outputElement.textContent = 'Documento cargado correctamente'; // Esto limpia el mensaje de carga
+            } else {
+                outputElement.innerHTML = data.message.replace(/\\n/g, '<br>');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            outputElement.textContent = 'Error al procesar la solicitud';
+        });
     };
 
     window.sendMessage = function () {
-        const chatBox = document.getElementById("chat-box");
-        const chatInput = document.getElementById("chat-input");
-    
-        if (chatInput.value.trim() !== "") {
-            const userMessage = document.createElement("p");
-            userMessage.classList.add("user-message");
-            userMessage.textContent = chatInput.value;
-            chatBox.appendChild(userMessage);
-    
-            fetch("/chatbot", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ pregunta: chatInput.value })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const botMessage = document.createElement("p");
-                botMessage.classList.add("bot-message");
-                botMessage.textContent = data.respuesta;
-                chatBox.appendChild(botMessage);
-            });
-    
-            chatInput.value = "";
-            chatBox.scrollTop = chatBox.scrollHeight;
+        if (!documentUploaded) {
+            alert("Sube un documento primero.");
+            return;
         }
+
+        let inputField = document.getElementById("chat-input");
+        let message = inputField.value.trim();
+        if (message === "") return;
+
+        let chatBox = document.getElementById("chat-box");
+
+        let userMessage = document.createElement("div");
+        userMessage.className = "message user-message";
+        userMessage.innerText = "Tú: " + message;
+        chatBox.appendChild(userMessage);
+
+        inputField.value = "";
+
+        fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            let botMessage = document.createElement("div");
+            botMessage.className = "message bot-message";
+            botMessage.innerText = "Bot: " + data.response;
+            chatBox.appendChild(botMessage);
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch(error => {
+            console.error("Error en la solicitud:", error);
+        });
     };
 });
-
-
-
-function processFile(buttonId) {
-    const outputElement = document.getElementById('output');
-    const formData = new FormData();
-    formData.append('file', document.getElementById('file-upload').files[0]);
-    formData.append('buttonId', buttonId);
-
-    document.getElementById("output").style.display = "block";
-    document.getElementById("chat-section").style.display = "none";
-
-    if (buttonId === 'resumen'){
-        outputElement.textContent = 'Resuminedo texto...';
-    } else if (buttonId === 'clasificacion'){
-        outputElement.textContent = 'Clasificando texto...';
-    } else if (buttonId === 'tokens'){
-        outputElement.textContent = 'Obteniendo NERs del texto...';
-    } else if (buttonId === 'palabras'){
-        outputElement.textContent = 'Obteniendo palabras clave del texto...';
-    }
-
-    fetch('http://127.0.0.1:5000/process', {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Respuesta de red no fue ok');
-        }
-        return response.text();
-    })
-    .then(text => {
-        try {
-            const data = JSON.parse(text);
-            outputElement.innerHTML = data.message.replace(/\\n/g, '<br>'); // Convierte \n a <br>
-        } catch (error) {
-            console.error('Error al parsear JSON:', error);
-            outputElement.innerHTML = 'Respuesta no es JSON válido';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        outputElement.textContent = 'Error al procesar la solicitud';
-    });
-}

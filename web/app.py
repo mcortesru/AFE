@@ -1,20 +1,22 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session
 from flask_cors import CORS
 import subprocess
 from werkzeug.utils import secure_filename
 import os
 import sys
 import logging
+from chromadb_open import chatbot_inicializar, chat
+
 logging.basicConfig(level=logging.DEBUG)
 print("Iniciando Flask...")
 
-
 app = Flask(__name__)
+app.secret_key = "supersecretkey"  # Necesario para manejar sesiones
 CORS(app)
 
-TMP_DIR = "/tmp"
-PREGUNTA_FILE = os.path.join(TMP_DIR, "pregunta.txt")
-RESPUESTA_FILE = os.path.join(TMP_DIR, "respuesta.txt")
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 def resumen(temp_path):
     print("Ejecutando resumen...")
@@ -75,58 +77,52 @@ def index():
 def process_file():
     button_id = request.form.get('buttonId')
     file = request.files.get('file')
-    if file:
-        filename = secure_filename(file.filename)
-        temp_path = os.path.join('/tmp', filename)  # Path completo al archivo temporal
-        file.save(temp_path)
+    
+    print(f"[DEBUG] buttonId recibido: {button_id}")  # Agrega esta línea
+    print(f"[DEBUG] Archivo recibido: {file.filename if file else 'Ninguno'}")  # Esta línea muestra
+    
+    if not file:
+        return jsonify({"error": "No se recibió ningún archivo"}), 400
 
-        if button_id == 'resumen':
-            message = resumen(temp_path)
-        elif button_id == 'clasificacion':
-            message = clasficacion(temp_path)
-        elif button_id == 'tokens':
-            message = tokens(temp_path)
-        elif button_id == 'palabras':
-            message = palabras(temp_path)
+    filename = secure_filename(file.filename)
+    temp_path = os.path.join('/tmp', filename)
+    file.save(temp_path)
+
+    message = "Acción no reconocida."
+
+    if button_id == 'resumen':
+        message = resumen(temp_path)
+    elif button_id == 'clasificacion':
+        message = clasificacion(temp_path)
+    elif button_id == 'tokens':
+        message = tokens(temp_path)
+    elif button_id == 'palabras':
+        message = palabras(temp_path)
+    elif button_id == 'chatbot':
+        # Inicializar el chatbot con el documento subido
+        if chatbot_inicializar(temp_path):
+            session['current_document'] = temp_path  # Guardamos en la sesión
+            session.modified = True  # Forzar la actualización de la sesión
+            message = f"Chatbot inicializado con {filename}."
         else:
-            message = "Acción no reconocida."
-        
-        os.remove(temp_path)
+            message = "No se pudo procesar el documento para el chatbot."
 
-        return jsonify({"message": message})
-    else:
-        return jsonify({"message": "No se recibió ningún archivo"})
+    return jsonify({"message": message})
 
-@app.route("/chatbot", methods=["POST"])
-def preguntar_chatbot():
-    data = request.get_json()
-    pregunta = data.get("pregunta", "").strip()
+@app.route('/chat', methods=['POST'])
+def chat_endpoint():
+    """Recibe una pregunta en JSON y devuelve la respuesta del chatbot."""
+    if 'current_document' not in session:
+        return jsonify({"error": "No se ha subido ningún documento."}), 400
 
-    if pregunta:
-        # Escribir la pregunta en un archivo
-        with open(PREGUNTA_FILE, "w") as f:
-            f.write(pregunta)
+    data = request.json
+    pregunta = data.get("message", "").strip()
 
-        # Ejecutar el chatbot y capturar su salida
-        result = subprocess.run(["python", "../chromadb_open.py", "--flask"], capture_output=True, text=True)
+    if not pregunta:
+        return jsonify({"error": "No se proporcionó ninguna pregunta."}), 400
 
-        print(f"[INFO] Chatbot stdout: {result.stdout}")
-        if result.stderr:
-            print(f"[ERROR] Error ejecutando chromadb_open.py: {result.stderr}")
-
-        # Verificar si el archivo de respuesta existe
-        if os.path.exists(RESPUESTA_FILE):
-            with open(RESPUESTA_FILE, "r") as f:
-                respuesta = f.read().strip()
-            os.remove(RESPUESTA_FILE)
-            print(f"[INFO] Respuesta obtenida: {respuesta}")
-        else:
-            print("[ERROR] El archivo de respuesta no fue generado por chatbot.py.")
-            respuesta = "No se obtuvo respuesta del chatbot."
-
-        return jsonify({"respuesta": respuesta})
-
-    return jsonify({"respuesta": "No se envió ninguna pregunta."})
+    respuesta = chat(pregunta)  # Llamamos a la función del chatbot
+    return jsonify({"response": respuesta})
 
 if __name__ == '__main__':
     app.run(debug=True)
