@@ -36,6 +36,9 @@ api_request_json = {
         {"role": "system", "content": "Extrae las palabras clave de este texto:"},
         {"role": "user", "content": texto},
     ],
+    "max_token": 500,  # Asegura que el resumen pueda ser más largo si es necesario
+    "temperature": 0.3,  # Reduce la creatividad para obtener un resumen más preciso
+    "frequency_penalty": 0.7,  # Evita repeticiones innecesarias
     "stream": False
 }
 

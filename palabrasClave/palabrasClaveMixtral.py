@@ -3,7 +3,7 @@ import mylib
 import sys
 import io
 
-# export REPLICATE_API_TOKEN=r8_9P0pn1CqVUQwidMfCVO8vVhB0GZCtSJ2x2UD0
+REPLICATE_API_TOKEN="token"
 
 output_buffer = io.StringIO()
 sys.stdout = output_buffer

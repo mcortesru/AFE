@@ -2,7 +2,7 @@ import sys
 import replicate
 import mylib
 
-# export REPLICATE_API_TOKEN=r8_9P0pn1CqVUQwidMfCVO8vVhB0GZCtSJ2x2UD0
+REPLICATE_API_TOKEN="token"
 
 
 if len(sys.argv) < 2:
