@@ -6,6 +6,14 @@ import joblib
 import pandas as pd
 from nltk.corpus import stopwords
 from pycaret.classification import load_model, predict_model
+import fitz  # Importa PyMuPDF
+
+def extraer_texto_pdf(ruta_pdf):
+    doc = fitz.open(ruta_pdf)
+    texto = ""
+    for pagina in doc:
+        texto += pagina.get_text()
+    return texto
 
 # Asegurarse de que los stopwords de NLTK estén descargados
 nltk.download('stopwords')
@@ -38,7 +46,7 @@ if __name__ == "__main__":
     tipo_documento = procesar_archivo(ruta_archivo)
     print(f"El tipo de documento es: {tipo_documento}")
     
-    output_dir = '/tmp'
+    output_dir = './.tmp'
     output_file = 'clasificacion.txt'
     
     # Asegurar que el directorio exista

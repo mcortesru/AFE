@@ -28,7 +28,7 @@ def resumen(temp_path):
 
 def clasificacion (temp_path):
     print ("Clasificando el documento...")
-    file_path = '/tmp/clasificacion.txt'
+    file_path = '../.tmp/clasificacion.txt'
 
     result = subprocess.run(['python', '../clasificador.py', temp_path], text=True)
     if result.stderr:
@@ -45,7 +45,7 @@ def clasificacion (temp_path):
 
 def tokens(temp_path):
     print("Obteniendo los NERs del documento...")
-    file_path = '/tmp/NERS.txt'  # La misma ruta fija que NER.py usa para escribir
+    file_path = '../.tmp/NERS.txt'  # La misma ruta fija que NER.py usa para escribir
 
     result = subprocess.run(['python', '../NER.py', temp_path], text=True)  # Ejecutar NER.py sin argumentos de ruta
 
@@ -86,7 +86,7 @@ def process_file():
         return jsonify({"error": "No se recibió ningún archivo"}), 400
 
     filename = secure_filename(file.filename)
-    temp_path = os.path.join('/tmp', filename)
+    temp_path = os.path.join('../.tmp', filename)
     file.save(temp_path)
 
     message = "Acción no reconocida."

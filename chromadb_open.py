@@ -8,7 +8,15 @@ from sentence_transformers import SentenceTransformer
 from chromadb.utils import embedding_functions
 import openai
 from flask_cors import CORS
-import mylib  # Asegúrate de que `mylib` contiene la función `extraer_texto_pdf`
+
+import fitz
+
+def extraer_texto_pdf(ruta_pdf):
+    doc = fitz.open(ruta_pdf)
+    texto = ""
+    for pagina in doc:
+        texto += pagina.get_text()
+    return texto
 
 # Configuración del servidor Flask
 app = Flask(__name__)
@@ -88,7 +96,7 @@ def procesar_documento(path_al_archivo):
     collection = resetear_chromaDB()  # Asignar la colección aquí
 
     try:
-        texto_documento = mylib.extraer_texto_pdf(path_al_archivo)
+        texto_documento = extraer_texto_pdf(path_al_archivo)
         print("[INFO] Texto extraído correctamente.")
     except Exception as e:
         print(f"[ERROR] Error al procesar el archivo {path_al_archivo}: {e}")

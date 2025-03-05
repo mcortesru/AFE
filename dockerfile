@@ -6,7 +6,6 @@ WORKDIR /app
 
 # Copiar solo los archivos necesarios
 COPY web /app/web
-COPY mylib /app/mylib
 COPY vectorizador.pkl /app/vectorizador.pkl
 COPY resumen.py /app/resumen.py
 COPY palabras.py /app/palabras.py

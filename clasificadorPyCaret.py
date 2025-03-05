@@ -8,6 +8,15 @@ import pandas as pd
 from pycaret.classification import *
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
+import fitz  # Importa PyMuPDF
+
+def extraer_texto_pdf(ruta_pdf):
+    doc = fitz.open(ruta_pdf)
+    texto = ""
+    for pagina in doc:
+        texto += pagina.get_text()
+    return texto
+
 # Definición de funciones
 def extraer_texto(ruta):
     texto = ""

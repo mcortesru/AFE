@@ -119,7 +119,6 @@ llamaapi==0.1.36
 Flask==3.1.0
 Flask_Cors==5.0.0
 Werkzeug==3.1.3
-fitz==0.0.1.dev2
 frontend==0.0.3
 tools==0.1.9
 pymupdf==1.25.3

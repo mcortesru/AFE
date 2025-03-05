@@ -2,8 +2,15 @@ import json
 from llamaapi import LlamaAPI
 import requests
 import sys
-import mylib
 
+import fitz
+
+def extraer_texto_pdf(ruta_pdf):
+    doc = fitz.open(ruta_pdf)
+    texto = ""
+    for pagina in doc:
+        texto += pagina.get_text()
+    return texto
 
 if len(sys.argv) < 2:
     # path_al_archivo = input("No se ha proporcionado el path del archivo. Por favor, introduce el path del archivo: ")   
@@ -21,7 +28,7 @@ else:
     path_al_archivo = sys.argv[1]
 
 try:
-    texto = mylib.extraer_texto_pdf(path_al_archivo)
+    texto = extraer_texto_pdf(path_al_archivo)
 except Exception as e:
     print(f"Error al procesar el archivo: {e}")
     sys.exit(1)

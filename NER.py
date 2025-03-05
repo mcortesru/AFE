@@ -1,4 +1,3 @@
-import mylib
 import sys
 from flair.data import Sentence
 from flair.models import SequenceTagger
@@ -11,7 +10,19 @@ import os
 
 import time
 
+import fitz
+import re
 
+def extraer_texto_pdf(ruta_pdf):
+    doc = fitz.open(ruta_pdf)
+    texto = ""
+    for pagina in doc:
+        texto += pagina.get_text()
+    return texto
+
+def quitar_guion_y_espacio(texto):
+    texto_limpiado = re.sub(r'(\b-\s*|\s*-\s*)([^\W\d_])', r'\2', texto)
+    return texto_limpiado
 
 
 start_time = time.time()  # Registrar el tiempo de inicio
@@ -30,8 +41,8 @@ else:
     path_al_archivo = sys.argv[1]
 
 try:
-    texto_original = mylib.extraer_texto_pdf(path_al_archivo)
-    texto_corregido = mylib.quitar_guion_y_espacio(texto_original)
+    texto_original = extraer_texto_pdf(path_al_archivo)
+    texto_corregido = quitar_guion_y_espacio(texto_original)
     all_entities = {}
 
 
@@ -233,7 +244,7 @@ try:
     #     # print(f"\n\nFecha: {item['fecha']} \n\tTexto: {item['texto_fecha']} \n\tContexto: {item['contexto']} \n\tInicio - Fin: {item['start_context']} - {item['end_context']}")
     #     print(f"\n\nFecha: {item['fecha']}")
     print (html_table)
-    output_dir = '/tmp'
+    output_dir = './.tmp'
     output_file = 'NERS.txt'
     
     # Asegurar que el directorio exista

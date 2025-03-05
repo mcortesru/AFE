@@ -7,7 +7,7 @@ from chromadb.utils import embedding_functions
 import openai
 from pinecone import Pinecone, ServerlessSpec
 
-TMP_DIR = "/tmp"
+TMP_DIR = "./.tmp"
 PREGUNTA_FILE = os.path.join(TMP_DIR, "pregunta.txt")
 RESPUESTA_FILE = os.path.join(TMP_DIR, "respuesta.txt")
 
