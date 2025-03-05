@@ -14,19 +14,17 @@ COPY final_model.pkl /app/final_model.pkl
 COPY clasificador.py /app/clasificador.py
 COPY chromadb_open.py /app/chromadb_open.py
 
-# Copiar el entorno virtual completo al contenedor
-#COPY myenv /app/myenv
+
+RUN mkdir -p /app/.tmp
+ENV TMPDIR=/app/.tmp
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Copiar el archivo de dependencias
 COPY requirements.txt /app/requirements.txt
 
-# Establecer un directorio de caché con permisos de escritura
-ENV PIP_NO_CACHE_DIR=off
-ENV TMPDIR=/app/tmp
-
 # Instalar las dependencias
 RUN pip install --upgrade pip
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Exponer el puerto que la app Flask estará utilizando
 EXPOSE 5000
