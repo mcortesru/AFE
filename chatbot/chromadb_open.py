@@ -9,6 +9,8 @@ from chromadb.utils import embedding_functions
 import openai
 from flask_cors import CORS
 import mylib  # Asegúrate de que `mylib` contiene la función `extraer_texto_pdf`
+from dotenv import load_dotenv
+
 
 # Configuración del servidor Flask
 app = Flask(__name__)
@@ -17,7 +19,8 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 
 # Cargar clave API de OpenAI desde variables de entorno
-OPENAI_API_KEY = "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"
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
 # Configuración de embeddings y base de datos

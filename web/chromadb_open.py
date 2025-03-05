@@ -9,16 +9,23 @@ from chromadb.utils import embedding_functions
 import openai
 from flask_cors import CORS
 import sys
+from dotenv import load_dotenv
+
+
 # Configuración del servidor Flask
 app = Flask(__name__)
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 
-# Cargar clave API de OpenAI desde variables de entorno
-OPENAI_API_KEY = "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"
+dotenv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.env"))
+load_dotenv(dotenv_path)
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
+
+    
 # Configuración de embeddings y base de datos
 
 import fitz

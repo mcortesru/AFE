@@ -2,14 +2,14 @@ import os
 import shutil
 import logging
 import chromadb
-import argparse  # 📌 Para elegir modo de ejecución
+import argparse
 from flask import Flask, request, jsonify
 from sentence_transformers import SentenceTransformer
 from chromadb.utils import embedding_functions
 import openai
 from flask_cors import CORS
-
 import fitz
+from dotenv import load_dotenv
 
 def extraer_texto_pdf(ruta_pdf):
     doc = fitz.open(ruta_pdf)
@@ -25,7 +25,8 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 
 # Cargar clave API de OpenAI desde variables de entorno
-OPENAI_API_KEY = "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"
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
 # Configuración de embeddings y base de datos

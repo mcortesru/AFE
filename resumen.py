@@ -2,8 +2,9 @@ import json
 from llamaapi import LlamaAPI
 import requests
 import sys
-
+from dotenv import load_dotenv
 import fitz
+import os
 
 def extraer_texto_pdf(ruta_pdf):
     doc = fitz.open(ruta_pdf)
@@ -34,8 +35,10 @@ except Exception as e:
     sys.exit(1)
 
 # 📌 Inicializar LlamaAPI
-api_token = "LL-Z8mrEuQPmlMauJWuXwIDlnoi9bFiSlFqiYQSx8E3lEfEleU7Zt5YB3qGUgeKOf2e"
-llama = LlamaAPI(api_token)
+load_dotenv()
+LLAMA_API_KEY = os.getenv("LLAMA_API_KEY")
+if LLAMA_API_KEY:
+    llama = LlamaAPI(LLAMA_API_KEY)
 
 # 📌 Construcción de la solicitud
 api_request_json = {

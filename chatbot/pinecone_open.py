@@ -6,6 +6,9 @@ from sentence_transformers import SentenceTransformer
 from chromadb.utils import embedding_functions
 import openai
 from pinecone import Pinecone, ServerlessSpec
+from dotenv import load_dotenv
+
+
 
 TMP_DIR = "./.tmp"
 PREGUNTA_FILE = os.path.join(TMP_DIR, "pregunta.txt")
@@ -13,7 +16,12 @@ RESPUESTA_FILE = os.path.join(TMP_DIR, "respuesta.txt")
 
 # Configuración para usar nube si es necesario
 USE_CLOUD = os.getenv("USE_CLOUD", "false").lower() == "true"
-OPENAI_API_KEY = "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"
+
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    openai.api_key = OPENAI_API_KEY
+
 PINECONE_API_KEY = "pcsk_3hrsSS_4wHGEjQFJdPZBdztChmutU3e4wDY4BYXK65B1SqmNHgemcXckVAkvrkhGqCpYm6"
 PINECONE_ENV = "us-west1-gcp"
 INDEX_NAME = "documentos"
