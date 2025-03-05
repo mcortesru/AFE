@@ -9,8 +9,6 @@ from chromadb.utils import embedding_functions
 import openai
 from flask_cors import CORS
 import sys
-sys.path.append('../mylib')
-from textos import extraer_texto_pdf
 # Configuración del servidor Flask
 app = Flask(__name__)
 CORS(app)
@@ -22,6 +20,15 @@ OPENAI_API_KEY = "sk-proj-cgQFgaeKrlo-ArEjkZ_ld170-bIwYeszgVPIiWrMt12rSzPIFpmKbr
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
 # Configuración de embeddings y base de datos
+
+import fitz
+
+def extraer_texto_pdf(ruta_pdf):
+    doc = fitz.open(ruta_pdf)
+    texto = ""
+    for pagina in doc:
+        texto += pagina.get_text()
+    return texto
 
 # Ruta por defecto si no se proporciona un documento
 #DEFAULT_DOC_PATH = "/Users/administrador/Desktop/PDFs/Documentos/CARTAS/005-10-14-15.pdf"

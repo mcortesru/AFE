@@ -7,6 +7,7 @@ import sys
 import logging
 from chromadb_open import chatbot_inicializar, chat
 
+
 logging.basicConfig(level=logging.DEBUG)
 print("Iniciando Flask...")
 
