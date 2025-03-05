@@ -25,7 +25,7 @@ def resumen(temp_path):
         print("Error al ejecutar el script de resumen:", result.stderr)
     return result.stdout if result.stdout else f"No se pudo obtener un resumen. Error: {result.stderr}"
 
-def clasficacion (temp_path):
+def clasificacion (temp_path):
     print ("Clasificando el documento...")
     file_path = '/tmp/clasificacion.txt'
 

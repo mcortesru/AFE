@@ -18,7 +18,7 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 
 # Cargar clave API de OpenAI desde variables de entorno
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 if OPENAI_API_KEY:
     openai.api_key = OPENAI_API_KEY
 # Configuración de embeddings y base de datos
