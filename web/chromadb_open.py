@@ -34,7 +34,8 @@ def extraer_texto_pdf(ruta_pdf):
 #DEFAULT_DOC_PATH = "/Users/administrador/Desktop/PDFs/Documentos/CARTAS/005-10-14-15.pdf"
 DEFAULT_DOC_PATH = "/Users/administrador/Desktop/PDFs/Documentos/CUESTIONARIO/004-07-159.pdf"
 
-CHROMA_DB_PATH = "./chroma_db"
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))  # Carpeta base del script
+CHROMA_DB_PATH = os.path.join(BASE_DIR, "chroma_db")
 collection_name = "chatbot_collection"
 model = SentenceTransformer("all-MiniLM-L6-v2")
 texto_documento = ""

@@ -244,8 +244,8 @@ try:
     #     # print(f"\n\nFecha: {item['fecha']} \n\tTexto: {item['texto_fecha']} \n\tContexto: {item['contexto']} \n\tInicio - Fin: {item['start_context']} - {item['end_context']}")
     #     print(f"\n\nFecha: {item['fecha']}")
     print (html_table)
-    output_dir = './.tmp'
-    output_file = 'NERS.txt'
+    output_dir = os.path.join(os.path.dirname(__file__), '.tmp')
+    output_file = os.path.join(output_dir, 'NERS.txt')
     
     # Asegurar que el directorio exista
     if not os.path.exists(output_dir):

@@ -16,3 +16,5 @@ test_env/
 
 */chroma_db/
 chroma_db/
+
+.tmp/*
