@@ -4,6 +4,8 @@ FROM python:3.10-slim
 # Establecemos el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y libgomp1 && rm -rf /var/lib/apt/lists/*
+
 # Copiar solo los archivos necesarios
 COPY web /app/web
 COPY vectorizador.pkl /app/vectorizador.pkl
@@ -13,6 +15,10 @@ COPY NER.py /app/NER.py
 COPY final_model.pkl /app/final_model.pkl
 COPY clasificador.py /app/clasificador.py
 COPY chromadb_open.py /app/chromadb_open.py
+
+COPY final_model.pkl /app/final_model.pkl
+COPY vectorizador.pkl /app/vectorizador.pkl
+
 # COPY .env /app/.env
 
 RUN mkdir -p /app/.tmp
