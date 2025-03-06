@@ -13,7 +13,7 @@ COPY NER.py /app/NER.py
 COPY final_model.pkl /app/final_model.pkl
 COPY clasificador.py /app/clasificador.py
 COPY chromadb_open.py /app/chromadb_open.py
-
+# COPY .env /app/.env
 
 RUN mkdir -p /app/.tmp
 ENV TMPDIR=/app/.tmp
