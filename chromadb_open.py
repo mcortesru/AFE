@@ -10,12 +10,18 @@ import openai
 from flask_cors import CORS
 import fitz
 from dotenv import load_dotenv
+import nltk
+from nltk.tokenize import sent_tokenize
+import re
+
+nltk.download('punkt')
 
 def extraer_texto_pdf(ruta_pdf):
     doc = fitz.open(ruta_pdf)
     texto = ""
     for pagina in doc:
         texto += pagina.get_text()
+    print (texto)
     return texto
 
 # Configuración del servidor Flask
@@ -82,6 +88,47 @@ def resetear_chromaDB():
     
     return collection  # Retorna la colección
 
+import re
+from nltk.tokenize import sent_tokenize
+
+def dividir_texto(texto, chunk_size=1200, overlap=20, min_chunk_size=400):
+    """Divide el texto en fragmentos completos sin cortar frases ni subtítulos, optimizando coherencia y contexto."""
+    
+    # Dividir por párrafos usando saltos de línea dobles como cortes naturales
+    parrafos = texto.split("\n\n")
+
+    # Almacén de fragmentos finales
+    chunks = []
+    actual_chunk = ""
+
+    for parrafo in parrafos:
+        # Tokenizar en oraciones
+        oraciones = sent_tokenize(parrafo)
+
+        for oracion in oraciones:
+            # Verificar si cabe la oración en el fragmento actual
+            if len(actual_chunk) + len(oracion) <= chunk_size:
+                actual_chunk += " " + oracion
+            else:
+                # Agregar fragmento completo al almacenamiento
+                if len(actual_chunk) < min_chunk_size and chunks:
+                    chunks[-1] += " " + actual_chunk.strip()
+                else:
+                    chunks.append(actual_chunk.strip())
+
+                # Mantener solapamiento de palabras sin cortar frases
+                ultimas_palabras = " ".join(actual_chunk.split()[-overlap:])
+                actual_chunk = ultimas_palabras + " " + oracion
+
+    # Agregar el último fragmento si no es muy pequeño
+    if actual_chunk:
+        if len(actual_chunk) < min_chunk_size and chunks:
+            chunks[-1] += " " + actual_chunk.strip()
+        else:
+            chunks.append(actual_chunk.strip())
+
+    return chunks
+
 
 # Función para procesar un documento y almacenarlo en ChromaDB
 def procesar_documento(path_al_archivo):
@@ -103,9 +150,15 @@ def procesar_documento(path_al_archivo):
         print(f"[ERROR] Error al procesar el archivo {path_al_archivo}: {e}")
         return False
 
-    # Dividir texto en fragmentos e indexarlos en ChromaDB
-    chunk_size = 500
-    chunks = [texto_documento[i:i+chunk_size] for i in range(0, len(texto_documento), chunk_size)]
+    print("[INFO] Dividiendo el texto en fragmentos...")
+    chunks = dividir_texto(texto_documento)
+
+    print("[INFO] Fragmentos generados:")
+    for i, chunk in enumerate(chunks):
+        print(f"\nFragmento {i + 1}:")
+        print(chunk)
+        print("-" * 50)
+
 
     print("[INFO] Indexando el documento en ChromaDB...")
     for i, chunk in enumerate(chunks):

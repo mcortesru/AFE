@@ -38,6 +38,7 @@ button:hover {
     max-height: 300px; /* Fija una altura máxima */
     white-space: pre-wrap; /* Permite que el texto preformateado se ajuste dentro de su contenedor */
     word-wrap: break-word;
+    text-align: left
 }
 
 #output pre {

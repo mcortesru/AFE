@@ -34,9 +34,9 @@ if OPENAI_API_KEY:
     try:
         client = openai.OpenAI(api_key=OPENAI_API_KEY)
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",  # Puedes cambiar a gpt-3.5-turbo si lo prefieres
             messages=[
-                {"role": "system", "content": "Resume el siguiente documento completo:"},
+                {"role": "system", "content": "Resume el siguiente texto completo:"},
                 {"role": "user", "content": texto},
             ],
             max_tokens=500,  # Ajusta la longitud del resumen
