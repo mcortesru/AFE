@@ -78,20 +78,20 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Sube un documento primero.");
             return;
         }
-
+    
         let inputField = document.getElementById("chat-input");
         let message = inputField.value.trim();
         if (message === "") return;
-
+    
         let chatBox = document.getElementById("chat-box");
-
+    
         let userMessage = document.createElement("div");
         userMessage.className = "message user-message";
         userMessage.innerText = "Tú: " + message;
         chatBox.appendChild(userMessage);
-
+    
         inputField.value = "";
-
+    
         fetch("/chat", {
             method: "POST",
             headers: {
@@ -99,17 +99,31 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             body: JSON.stringify({ message: message })
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(async response => {
+            console.log("🛑 Respuesta completa del servidor:", response);
+            let data;
+            try {
+                data = await response.json();
+            } catch (error) {
+                console.error("🛑 Error convirtiendo la respuesta a JSON:", error);
+                return;
+            }
+    
+            console.log("🛑 JSON recibido:", data);
+            if (data.error) {
+                alert("Error: " + data.error);
+                return;
+            }
+    
             let botMessage = document.createElement("div");
             botMessage.className = "message bot-message";
             botMessage.innerText = "Bot: " + data.response;
             chatBox.appendChild(botMessage);
-
+    
             chatBox.scrollTop = chatBox.scrollHeight;
         })
         .catch(error => {
-            console.error("Error en la solicitud:", error);
+            console.error("🛑 Error en la solicitud:", error);
         });
-    };
+    };    
 });
