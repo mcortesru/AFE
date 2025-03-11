@@ -5,6 +5,7 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import logging
 from chromadb_open import chatbot_inicializar, chat
+import sys
 
 logging.basicConfig(level=logging.DEBUG)
 print("Iniciando Flask...")
@@ -22,8 +23,10 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 TMP_DIR = os.path.join(os.path.dirname(__file__), "..", ".tmp")
 os.makedirs(TMP_DIR, exist_ok=True)
 
-VENV_PYTHON = os.path.join(os.path.dirname(__file__), '..', 'mi_entorno', 'Scripts', 'python.exe')
-
+if sys.platform == "win32":
+    VENV_PYTHON = os.path.join(os.path.dirname(__file__), '..', 'mi_entorno', 'Scripts', 'python.exe')
+else:
+    VENV_PYTHON = os.path.join(os.path.dirname(__file__), '..', 'myenv', 'bin', 'python')
 
 def resumen(temp_path):
     """Ejecuta el script de resumen en el entorno virtual."""

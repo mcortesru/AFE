@@ -1,14 +1,21 @@
 document.addEventListener("DOMContentLoaded", function () {
     let documentUploaded = false;  // Rastrea si se ha subido un archivo
 
+    document.getElementById("file-upload").addEventListener("change", function () {
+        // Ocultar el chat
+        document.getElementById("chat-section").style.display = "none";
+        
+        // Restablecer el mensaje de salida
+        document.getElementById("output").textContent = "Aquí aparecerá el texto procesado.";
+    });    
+
     function toggleSections(showChat) {
         let chatSection = document.getElementById("chat-section");
-        chatSection.style.display = showChat ? "block" : "none";
-    }
-
-    function clearChatHistory() {
-        let chatBox = document.getElementById("chat-box");
-        chatBox.innerHTML = "";  // 🔥 Borra todos los mensajes del chat
+        if (showChat) {
+            chatSection.style.display = "block";
+        } else {
+            chatSection.style.display = "none";
+        }
     }
 
     window.processFile = function (buttonId) {
@@ -38,6 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
             outputElement.textContent = 'Obteniendo palabras clave del texto...';
         } else if (buttonId === 'chatbot') {
             outputElement.textContent = 'Cargando chatbot...';
+            document.getElementById("chat-box").innerHTML = "";
         }
 
         fetch('http://127.0.0.1:5000/process', {
@@ -53,9 +61,8 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(data => {
             if (buttonId === 'chatbot') {
                 documentUploaded = true; // Se confirma que el documento fue subido
-                clearChatHistory();  // 🔥 Limpiar chat al subir nuevo documento
                 toggleSections(true);  // Mostrar el chat
-                outputElement.textContent = 'Documento cargado correctamente'; // Limpia mensaje de carga
+                outputElement.textContent = 'Documento cargado correctamente'; // Esto limpia el mensaje de carga
             } else {
                 outputElement.innerHTML = data.message.replace(/\\n/g, '<br>');
             }

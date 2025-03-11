@@ -4,8 +4,19 @@ import fitz
 import nltk
 import joblib
 import pandas as pd
-from nltk.corpus import stopwords
 from pycaret.classification import load_model, predict_model
+
+nltk_data_path = os.path.join(sys.prefix, "nltk_data")
+os.makedirs(nltk_data_path, exist_ok=True)
+
+nltk.data.path.insert(0, nltk_data_path)
+try:
+    from nltk.corpus import stopwords
+    stop_words_spanish = stopwords.words('spanish')
+except LookupError:
+    nltk.download('stopwords', download_dir=nltk_data_path)
+    from nltk.corpus import stopwords
+    stop_words_spanish = stopwords.words('spanish')
 
 # Definir la carpeta base del proyecto de manera dinámica
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -18,9 +29,6 @@ vectorizador_path = os.path.join(BASE_DIR, "vectorizador.pkl")
 modelo = load_model(modelo_path)
 vectorizador = joblib.load(vectorizador_path)
 
-# Asegurarse de que los stopwords de NLTK estén descargados
-nltk.download('stopwords')
-stop_words_spanish = stopwords.words('spanish')
 
 # Extraer texto de un PDF
 def extraer_texto_pdf(ruta_pdf):

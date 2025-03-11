@@ -10,6 +10,7 @@ import openai
 from flask_cors import CORS
 import sys
 from dotenv import load_dotenv
+import time
 
 
 # Configuración del servidor Flask
@@ -55,33 +56,40 @@ print("[INFO] Iniciando conexión con ChromaDB...")
 # **Eliminar la carpeta de la base de datos antes de crear una nueva**
 def resetear_chromaDB():
     """ Elimina todos los archivos y directorios en la base de datos de ChromaDB y gestiona la colección. """
-    # Verificar si existe la carpeta de la base de datos
-    if os.path.exists(CHROMA_DB_PATH):
-        # Recorremos todos los archivos y directorios en la carpeta
-        for filename in os.listdir(CHROMA_DB_PATH):
-            file_path = os.path.join(CHROMA_DB_PATH, filename)
-            # Si es un archivo que no sea "chroma.sqlite3", eliminarlo
-            if os.path.isfile(file_path) and filename != "chroma.sqlite3":
-                os.remove(file_path)  # Eliminar archivo individual
-                print(f"[INFO] Eliminado archivo: {file_path}")
-            # Si es un directorio, eliminar el directorio y su contenido
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)  # Eliminar directorio y su contenido
-                print(f"[INFO] Eliminado directorio: {file_path}")
-        
-        print("[INFO] Archivos y directorios no deseados eliminados de ChromaDB.")
-    else:
-        print("[INFO] La carpeta de ChromaDB no existe.")
-    
-    # Crear un nuevo cliente de ChromaDB
+
+    print("[INFO] Cerrando conexiones antes de eliminar ChromaDB...")
     chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-    
-    # Intentamos eliminar la colección si existe
     try:
         chroma_client.delete_collection(name=collection_name)
         print("[INFO] Colección eliminada correctamente.")
     except Exception as e:
         print(f"[INFO] No se pudo eliminar la colección (posiblemente no existe): {e}")
+
+    del chroma_client  # Cerrar cliente antes de borrar archivos
+    time.sleep(2)
+
+    if os.path.exists(CHROMA_DB_PATH):
+        for filename in os.listdir(CHROMA_DB_PATH):
+            file_path = os.path.join(CHROMA_DB_PATH, filename)
+            try:
+                if os.path.isfile(file_path) and filename != "chroma.sqlite3":
+                    os.remove(file_path)  # Eliminar archivo individual
+                    print(f"[INFO] Eliminado archivo: {file_path}")
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)  # Eliminar directorio y su contenido
+                    print(f"[INFO] Eliminado directorio: {file_path}")
+            except Exception as e:
+                print(f"[ERROR] No se pudo eliminar {file_path}: {e}")
+
+        print("[INFO] Archivos y directorios eliminados de ChromaDB.")
+    else:
+        print("[INFO] La carpeta de ChromaDB no existe.")
+
+    # 🔹 Esperar un poco antes de crear la nueva colección
+    time.sleep(1)
+    
+    # Crear un nuevo cliente de ChromaDB
+    chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
     
     # Crear una nueva colección
     collection = chroma_client.create_collection(name=collection_name)
