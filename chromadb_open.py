@@ -200,7 +200,7 @@ def generar_respuesta(texto_relevante, pregunta):
         try:
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
             respuesta = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "Responde preguntas basadas en el documento proporcionado."},
                     {"role": "user", "content": f"Documento relevante:\n{texto_relevante}\n\nPregunta: {pregunta}"}

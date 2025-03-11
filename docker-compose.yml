@@ -1,6 +1,6 @@
 services:
   app:
-    image: mi_app:latest
+    image: mi-chatbot:latest
     env_file:
       - .env
     ports:

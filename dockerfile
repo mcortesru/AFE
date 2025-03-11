@@ -32,6 +32,9 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Borrar más adelante
+RUN python -m spacy download es_core_news_sm
+
 # Exponer el puerto que la app Flask estará utilizando
 EXPOSE 5000
 
