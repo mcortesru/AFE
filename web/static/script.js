@@ -3,11 +3,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function toggleSections(showChat) {
         let chatSection = document.getElementById("chat-section");
-        if (showChat) {
-            chatSection.style.display = "block";
-        } else {
-            chatSection.style.display = "none";
-        }
+        chatSection.style.display = showChat ? "block" : "none";
+    }
+
+    function clearChatHistory() {
+        let chatBox = document.getElementById("chat-box");
+        chatBox.innerHTML = "";  // 🔥 Borra todos los mensajes del chat
     }
 
     window.processFile = function (buttonId) {
@@ -52,8 +53,9 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(data => {
             if (buttonId === 'chatbot') {
                 documentUploaded = true; // Se confirma que el documento fue subido
+                clearChatHistory();  // 🔥 Limpiar chat al subir nuevo documento
                 toggleSections(true);  // Mostrar el chat
-                outputElement.textContent = 'Documento cargado correctamente'; // Esto limpia el mensaje de carga
+                outputElement.textContent = 'Documento cargado correctamente'; // Limpia mensaje de carga
             } else {
                 outputElement.innerHTML = data.message.replace(/\\n/g, '<br>');
             }

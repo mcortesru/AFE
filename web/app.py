@@ -22,37 +22,53 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 TMP_DIR = os.path.join(os.path.dirname(__file__), "..", ".tmp")
 os.makedirs(TMP_DIR, exist_ok=True)
 
+VENV_PYTHON = os.path.join(os.path.dirname(__file__), '..', 'mi_entorno', 'Scripts', 'python.exe')
+
+
 def resumen(temp_path):
+    """Ejecuta el script de resumen en el entorno virtual."""
     print("Ejecutando resumen...")
-    result = subprocess.run(['python', os.path.join(os.path.dirname(__file__), '..', 'resumen.py'), temp_path], 
-                            capture_output=True, text=True)
+
+    resumen_script = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resumen.py'))
+    
+    result = subprocess.run([VENV_PYTHON, resumen_script, temp_path], capture_output=True, text=True)
+
     if result.stderr:
         print("Error al ejecutar el script de resumen:", result.stderr)
+
     return result.stdout if result.stdout else f"No se pudo obtener un resumen. Error: {result.stderr}"
 
+
 def clasificacion(temp_path):
+    """Ejecuta el script de clasificación en el entorno virtual."""
     print("Clasificando el documento...")
+
+    clasificador_script = os.path.join(os.path.dirname(__file__), '..', 'clasificador.py')
     file_path = os.path.join(TMP_DIR, 'clasificacion.txt')
 
-    result = subprocess.run(['python', os.path.join(os.path.dirname(__file__), '..', 'clasificador.py'), temp_path], 
-                            text=True)
+    result = subprocess.run([VENV_PYTHON, clasificador_script, temp_path], capture_output=True, text=True)
+
     if result.stderr:
         print("Error al ejecutar el script de clasificación:", result.stderr)
         return f"No se pudo obtener la clasificación. Error: {result.stderr}"
-    
+
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
             clas_results = file.read()
         os.remove(file_path)
-        return clas_results if clas_results else "No se pudo clasificar el documento"
+        return clas_results if clas_results else "No se pudo clasificar el documento."
     else:
         return "El archivo de resultados no se encontró o no se pudo crear."
 
+
 def tokens(temp_path):
+    """Ejecuta el script de reconocimiento de entidades (NER) en el entorno virtual."""
     print("Obteniendo los NERs del documento...")
+
+    ner_script = os.path.join(os.path.dirname(__file__), '..', 'NER.py')
     file_path = os.path.join(TMP_DIR, 'NERS.txt')
 
-    result = subprocess.run(['python', os.path.join(os.path.dirname(__file__), '..', 'NER.py'), temp_path], text=True)
+    result = subprocess.run([VENV_PYTHON, ner_script, temp_path], capture_output=True, text=True)
 
     if result.stderr:
         print("Error al ejecutar el script de obtención de NERs:", result.stderr)
@@ -66,13 +82,20 @@ def tokens(temp_path):
     else:
         return "El archivo de resultados no se encontró o no se pudo crear."
 
+
 def palabras(temp_path):
+    """Ejecuta el script de extracción de palabras clave en el entorno virtual."""
     print("Obteniendo palabras clave del documento...")
-    result = subprocess.run(['python', os.path.join(os.path.dirname(__file__), '..', 'palabras.py'), temp_path], 
-                            capture_output=True, text=True)
+
+    palabras_script = os.path.join(os.path.dirname(__file__), '..', 'palabras.py')
+
+    result = subprocess.run([VENV_PYTHON, palabras_script, temp_path], capture_output=True, text=True)
+
     if result.stderr:
         print("Error al ejecutar el script de palabras clave:", result.stderr)
+
     return result.stdout if result.stdout else f"No se pudo obtener las palabras clave. Error: {result.stderr}"
+
 
 @app.route('/')
 def index():
