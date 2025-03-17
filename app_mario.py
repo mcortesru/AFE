@@ -4,9 +4,11 @@ import subprocess
 import traceback
 import requests
 import webbrowser
-import sys
 
+import sys
 print(f"Versión de Python: {sys.version}")
+
+
 
 DOCKER_DESKTOP_PATH = r"C:\Program Files\Docker\Docker\Docker Desktop.exe"
 PROJECT_DIR = r"C:\apppython\AFE"
@@ -20,7 +22,8 @@ def log_error(message):
 def is_docker_ready():
     """Verifica si Docker está funcionando ejecutando `docker info`."""
     try:
-        subprocess.run(["docker", "info"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        subprocess.run(["docker", "info"], stdout=subprocess.PIPE,
+stderr=subprocess.PIPE, check=True)
         return True
     except subprocess.CalledProcessError:
         return False
@@ -31,7 +34,7 @@ def start_docker():
     if not is_docker_ready():
         print("Iniciando Docker Desktop...")
         os.startfile(DOCKER_DESKTOP_PATH)
-        
+
         for i in range(30):
             if is_docker_ready():
                 print("✅ Docker está listo.")
@@ -49,7 +52,8 @@ def start_docker_compose():
     """Ejecuta `docker compose up` en el directorio del proyecto."""
     print("🚀 Ejecutando `docker compose up`...")
     try:
-        subprocess.Popen(["docker", "compose", "up"], cwd=PROJECT_DIR, shell=True)
+        subprocess.run(["docker", "compose", "up"], cwd=PROJECT_DIR,
+shell=True, check=True)
         print("✅ Docker Compose iniciado correctamente.")
     except subprocess.CalledProcessError as e:
         log_error(f"Error ejecutando Docker Compose: {str(e)}")
@@ -57,7 +61,8 @@ def start_docker_compose():
 
 def wait_for_app():
     """Espera hasta que la aplicación en localhost:5000 esté disponible."""
-    print("⌛ Esperando a que la aplicación esté disponible en localhost:5000...")
+    print("⌛ Esperando a que la aplicación esté disponible en
+localhost:5000...")
 
     for i in range(30):  # Espera hasta 5 minutos
         try:
@@ -65,9 +70,9 @@ def wait_for_app():
             if response.status_code == 200:
                 print("✅ Aplicación disponible.")
                 return True
-        except requests.RequestException as e:
-            print(f"⚠️ Intento {i+1}: Error al conectar - {e}")
-
+        except requests.RequestException:
+            pass
+        print(f"⌛ Intento {i+1}: La aplicación aún no responde...")
         time.sleep(10)
 
     print("❌ La aplicación no respondió en 5 minutos.")
@@ -82,10 +87,10 @@ if __name__ == "__main__":
     try:
         start_docker()
         start_docker_compose()
-        if wait_for_app():  # ✅ CORREGIDO: Se llama a la función con ()
+        if wait_for_app():
             open_browser()
     except Exception as e:
         log_error(traceback.format_exc())
         print("❌ Error inesperado. Revisa error_log.txt.")
 
-    input("Presiona Enter para salir...")
+input("Presiona Enter para salir...")
