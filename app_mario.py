@@ -61,8 +61,7 @@ shell=True, check=True)
 
 def wait_for_app():
     """Espera hasta que la aplicación en localhost:5000 esté disponible."""
-    print("⌛ Esperando a que la aplicación esté disponible en
-localhost:5000...")
+    print("⌛ Esperando a que la aplicación esté disponible en localhost:5000...")
 
     for i in range(30):  # Espera hasta 5 minutos
         try:
