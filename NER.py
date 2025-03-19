@@ -9,7 +9,6 @@ from prettytable import PrettyTable
 import os
 
 import time
-
 import fitz
 import re
 
