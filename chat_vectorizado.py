@@ -9,6 +9,7 @@ from pathlib import Path
 from sentence_transformers import SentenceTransformer
 from openai import OpenAI
 from dotenv import load_dotenv
+import sys
 
 # Config
 load_dotenv()
@@ -21,21 +22,6 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Inicializar Chroma
 chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
-
-# Intentar recuperar colección existente
-coleccion_nueva = False
-try:
-    collection = chroma_client.get_collection(name=COLLECTION_NAME)
-    print(f"[INFO] Colección '{COLLECTION_NAME}' existente cargada.")
-except:
-    print(f"[INFO] Colección '{COLLECTION_NAME}' no existe. Creándola e indexando los PDFs...")
-    collection = chroma_client.create_collection(name=COLLECTION_NAME)
-    coleccion_nueva = True
-    indexar_todos_los_pdfs()
-
-import os
-import sys
-import contextlib
 
 @contextlib.contextmanager
 def suppress_low_level_output():
@@ -73,7 +59,7 @@ def indexar_todos_los_pdfs():
                     embeddings=[vector],
                     documents=[chunk],
                     ids=[doc_id],
-                    metadatas=[{"source": os.path.basename(ruta_pdf)}]
+                    metadatas=[{"source": str(ruta_pdf.relative_to(BASE_DIR.parent))}]
                 )
             print(f"[✓] Indexado: {ruta_pdf}")
         except Exception as e:
@@ -100,6 +86,18 @@ def generar_respuesta(pregunta, contexto):
         messages=mensajes
     )
     return respuesta.choices[0].message.content
+
+
+# Intentar recuperar colección existente
+coleccion_nueva = False
+try:
+    collection = chroma_client.get_collection(name=COLLECTION_NAME)
+    print(f"[INFO] Colección '{COLLECTION_NAME}' existente cargada.")
+except:
+    print(f"[INFO] Colección '{COLLECTION_NAME}' no existe. Creándola e indexando los PDFs...")
+    collection = chroma_client.create_collection(name=COLLECTION_NAME)
+    coleccion_nueva = True
+    indexar_todos_los_pdfs()
 
 if __name__ == "__main__":
     if coleccion_nueva:
