@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 import chromadb
 import contextlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuración inicial
 load_dotenv()
@@ -110,6 +111,7 @@ def load_text_from_docs(docs_info):
     texts = []
     for name, rel_path in docs_info:
         full_path = BASE_PATH / Path(rel_path)
+
         if not full_path.exists():
             continue
         try:
@@ -125,7 +127,12 @@ def buscar_texto_relevante(pregunta):
     with suppress_low_level_output():
         resultado = collection.query(query_embeddings=[vector], n_results=5)    
     docs = resultado["documents"][0] if resultado["documents"] else []
-    sources = {m["source"] for m in resultado["metadatas"][0]} if resultado["metadatas"] else []
+    sources = set()
+    for m in resultado["metadatas"][0]:
+        nombre = m.get("name", "")
+        ruta = m.get("path", "")
+        if nombre and ruta:
+            sources.add((nombre, ruta))
     return "\n".join(docs), sources
 
 def generate_answer(question, documents_text):
@@ -149,88 +156,94 @@ Responde a esta pregunta basada únicamente en los siguientes documentos histór
 
 # --- Ejecución principal ---
 if __name__ == "__main__":
-    pregunta = input("❓ Introduce tu pregunta: ")
+    try:
+        while True:
+            pregunta = input(" Introduce tu pregunta: ")
+            if not pregunta.strip():
+                continue
 
-    # 🧠 Método 1: spaCy + Neo4j
-    print("\n🔍 Buscando por entidades (spaCy + Neo4j)...")
-    entidades = extract_entities(pregunta)
-    documentos_entidades = find_documents_related_to_entities(entidades)
-    textos_spacy = load_text_from_docs(documentos_entidades)
-    if textos_spacy:
-        respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy))
-    else:
-        respuesta_spacy = "⚠️ No se encontraron documentos relevantes con spaCy."
+            # 🧠 Método 1: spaCy + Neo4j
+            print("\n🔍 Buscando por entidades (spaCy + Neo4j)...")
+            entidades = extract_entities(pregunta)
+            documentos_entidades = find_documents_related_to_entities(entidades)
+            textos_spacy = load_text_from_docs(documentos_entidades)
+            if textos_spacy:
+                respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy))
+            else:
+                respuesta_spacy = "⚠️ No se encontraron documentos relevantes con spaCy."
 
-    # 🧠 Método 2: Cypher generado por GPT
-    print("\n📜 Generando consulta Cypher con GPT...")
-    cypher = generar_cypher(pregunta)
-    documentos_cypher = run_cypher(cypher)
-    textos_cypher = load_text_from_docs(documentos_cypher)
-    if textos_cypher:
-        respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher))
-    else:
-        respuesta_cypher = "⚠️ No se encontraron documentos relevantes con Cypher generado por GPT."
+            # 🧠 Método 2: Cypher generado por GPT
+            print("\n📜 Generando consulta Cypher con GPT...")
+            cypher = generar_cypher(pregunta)
+            documentos_cypher = run_cypher(cypher)
+            textos_cypher = load_text_from_docs(documentos_cypher)
+            if textos_cypher:
+                respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher))
+            else:
+                respuesta_cypher = "⚠️ No se encontraron documentos relevantes con Cypher generado por GPT."
 
-    # 🧠 Método 3: Vector search con ChromaDB
-    print("\n📚 Buscando semánticamente con ChromaDB...")
-    contexto_vectorial, fuentes_vectoriales = buscar_texto_relevante(pregunta)
-    if contexto_vectorial.strip():
-        respuesta_vectorial = generate_answer(pregunta, contexto_vectorial)
-    else:
-        respuesta_vectorial = "⚠️ No se encontraron documentos relevantes con ChromaDB."
+            # 🧠 Método 3: Vector search con ChromaDB
+            print("\n📚 Buscando semánticamente con ChromaDB...")
+            contexto_vectorial, fuentes_vectoriales = buscar_texto_relevante(pregunta)
+            if contexto_vectorial.strip():
+                respuesta_vectorial = generate_answer(pregunta, contexto_vectorial)
+            else:
+                respuesta_vectorial = "⚠️ No se encontraron documentos relevantes con ChromaDB."
 
-    # 🧠 Método 4: Juntar todos los documentos
-    documentos_usados_final = set()
-    documentos_usados_final.update(documentos_entidades)
-    documentos_usados_final.update(documentos_cypher)
-    documentos_usados_final.update([(name, name) for name in fuentes_vectoriales])
-    
-    documentos_usados_dict = {}
-    for nombre, ruta in documentos_usados_final:
-        if nombre not in documentos_usados_dict:
-            documentos_usados_dict[nombre] = ruta
-    
-    # 📄 Cargar textos desde los documentos combinados
-    textos_combinados_final = load_text_from_docs(documentos_usados_dict.items())
-    if textos_combinados_final:
-        texto_final = "\n\n".join(textos_combinados_final)
-        respuesta_final_combinada = generate_answer(pregunta, texto_final)
-    else:
-        respuesta_final_combinada = "⚠️ No se encontró contenido relevante en ninguno de los métodos."
+            # 🧠 Método 4: Juntar todos los documentos
+            documentos_usados_final = set()
+            documentos_usados_final.update(documentos_entidades)
+            documentos_usados_final.update(documentos_cypher)
+            documentos_usados_final.update(fuentes_vectoriales)
+            for item in documentos_usados_final:
+                assert isinstance(item, tuple) and len(item) == 2 and all(isinstance(x, str) for x in item), f"Formato incorrecto: {item}"
 
-    # 🔽 Mostrar resultados por método
-    print("\n\n🧠 RESPUESTA spaCy + Neo4j:\n")
-    print(respuesta_spacy)
+            documentos_usados_dict = {}
+            for nombre, ruta in documentos_usados_final:
+                if nombre not in documentos_usados_dict:
+                    documentos_usados_dict[nombre] = ruta
+            
+            # 📄 Cargar textos desde los documentos combinados
+            textos_combinados_final = load_text_from_docs(documentos_usados_dict.items())
+            
+            if textos_combinados_final:
+                texto_final = "\n\n".join(textos_combinados_final)
+                respuesta_final_combinada = generate_answer(pregunta, texto_final)
+            else:
+                respuesta_final_combinada = "⚠️ No se encontró contenido relevante en ninguno de los métodos."
 
-    print("\n\n🧠 RESPUESTA Cypher generado por GPT:\n")
-    print(respuesta_cypher)
+            # 🔽 Mostrar resultados por método
+            print("\n\n🧠 RESPUESTA spaCy + Neo4j:\n")
+            print(respuesta_spacy)
 
-    print("\n\n🧠 RESPUESTA Vectorial con ChromaDB:\n")
-    print(respuesta_vectorial)
+            print("\n\n🧠 RESPUESTA Cypher generado por GPT:\n")
+            print(respuesta_cypher)
 
-    print("\n\n🧠 RESPUESTA COMBINADA:\n")
-    print(respuesta_final_combinada)
+            print("\n\n🧠 RESPUESTA Vectorial con ChromaDB:\n")
+            print(respuesta_vectorial)
 
-    print("\n📌 Info extra:")
-    
-    print(f"- Entidades detectadas: {entidades}")
-    
-    print("- Documentos spaCy:")
-    for nombre, ruta in sorted(documentos_entidades):
-        print(f"  - {nombre} ({ruta})")
+            print("\n\n🧠 RESPUESTA COMBINADA:\n")
+            print(respuesta_final_combinada)
 
-    print("- Documentos Cypher:")
-    for nombre, ruta in sorted(documentos_cypher):
-        print(f"  - {nombre} ({ruta})")
+            print("\n📌 Info extra:")
+            
+            print(f"- Entidades detectadas: {entidades}")
+            
+            print("- Documentos spaCy:")
+            for nombre, ruta in sorted(documentos_entidades):
+                print(f"  - {nombre} ({ruta})")
 
-    print("- Fuentes vectoriales:")
-    for nombre in sorted(fuentes_vectoriales):
-        print(f"  - {nombre} ({nombre})")
+            print("- Documentos Cypher:")
+            for nombre, ruta in sorted(documentos_cypher):
+                print(f"  - {nombre} ({ruta})")
 
-    print("- Documentos usados para la respuesta final:")
-    for nombre, ruta in sorted(documentos_usados_dict.items()):
-        print(f"  - {nombre} ({ruta})")
+            print("- Fuentes vectoriales:")
+            for nombre, ruta in sorted(fuentes_vectoriales):
+                print(f"  - {nombre} ({ruta})")
 
-
-
-    driver.close()
+            print("- Documentos usados para la respuesta final:")
+            for nombre, ruta in sorted(documentos_usados_dict.items()):
+                print(f"  - {nombre} ({ruta})")
+    except KeyboardInterrupt:
+        print("\n👋 Salida del chatbot. ¡Hasta la próxima!")
+        driver.close()
