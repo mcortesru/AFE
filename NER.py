@@ -158,7 +158,7 @@ try:
     rows_filtered = []
     for entity, details in all_entities.items():
         count_models = sum(1 for model in details if model in ["Flair", "BERT", "Roberta"] and details[model] != ("-","-"))
-        is_high_confidence = any(details[model][1] > 0.99 for model in details if model in ["Flair", "BERT"])
+        is_high_confidence = any(details[model][1] > 0.7 for model in details if model in ["Flair", "BERT"])
         if count_models > 1 or (count_models == 1 and is_high_confidence):
             row = [entity]
             for model in ["Flair", "BERT", "Roberta"]:

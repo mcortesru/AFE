@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("chat-box").innerHTML = "";
         }
 
-        fetch('http://127.0.0.1:5000/process', {
+        fetch('http://127.0.0.1:5001/process', {
             method: 'POST',
             body: formData,
         })

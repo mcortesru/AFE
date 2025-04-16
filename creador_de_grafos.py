@@ -1,55 +1,81 @@
 from neo4j import GraphDatabase
 import json
 import os
+from dotenv import load_dotenv
+from pathlib import Path
 
-# Configuración de Neo4j (local)
-NEO4J_URI = "bolt://localhost:7687"
-NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "sacar el .env"
+# ==========================
+# 🔧 Conexión a Neo4j
+# ==========================
+load_dotenv()
+NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
-DIRECTORIO_DATOS = "./Correspondencia/Datos_procesados"
+driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 
-def conectar_neo4j():
-    """Conecta con Neo4j y verifica la conexión"""
-    try:
-        driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
-        driver.verify_connectivity()
-        print("✅ Conexión exitosa con Neo4j local")
-        return driver
-    except Exception as e:
-        print("❌ Error al conectar con Neo4j:", e)
-        return None
+BASE_DIR = Path("AUPSA_ACE_JN_Correspondencia Presidencia")
 
-def cargar_json_a_neo4j(driver):
-    """Carga los archivos JSON a Neo4j"""
-    archivos = [f for f in os.listdir(DIRECTORIO_DATOS) if f.endswith(".json")]
-    
+
+# ==========================
+# 🧠 Crear nodos y relaciones
+# ==========================
+def create_nodes_and_relationships(json_path):
+    with open(json_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+
     with driver.session() as session:
-        for archivo in archivos:
-            ruta = os.path.join(DIRECTORIO_DATOS, archivo)
-            with open(ruta, "r", encoding="utf-8") as f:
-                datos = json.load(f)
+        for pdf, details in data.items():
+            pdf_path = details.get("pdf_path", "")
+            full_path = BASE_DIR / Path(pdf_path)
 
-            nombre_documento = archivo.replace(".json", "")
+            # ❌ Validar que el archivo PDF exista antes de continuar
+            if not full_path.exists():
+                raise FileNotFoundError(f"❌ No se encontró el archivo PDF: {full_path}")
 
-            # Crear nodo de documento
-            session.run("MERGE (d:Document {name: $name})", name=nombre_documento)
+            # Crear nodo del documento con metadatos
+            session.run(
+                """
+                MERGE (d:Document {name: $pdf})
+                SET d.creation_date = $creation_date,
+                    d.author = $author,
+                    d.pdf_path = $pdf_path
+                """,
+                pdf=pdf,
+                creation_date=details.get("creation_date", ""),
+                author=details.get("author", ""),
+                pdf_path=pdf_path
+            )
 
-            # Crear nodos de entidades y relaciones
-            for tipo, valores in datos.items():
-                for valor in valores:
-                    session.run(f"""
-                        MERGE (e:{tipo} {{name: $name}})
-                        MERGE (e)-[:MENTIONED_IN]->(d:Document {{name: $doc}})
-                    """, name=valor, doc=nombre_documento)
+            # Crear entidades relacionadas
+            for category, label in [
+                ("dates", "Date"),
+                ("people", "Person"),
+                ("locations", "Location"),
+                ("organizations", "Organization")
+            ]:
+                for item in details.get(category, []):
+                    if not item.strip():
+                        continue
+                    session.run(
+                        f"""
+                        MATCH (d:Document {{name: $pdf}})
+                        MERGE (n:{label} {{name: $item}})
+                        MERGE (d)-[:MENTIONS]->(n)
+                        """,
+                        pdf=pdf,
+                        item=item
+                    )
 
-            print(f"✅ Cargado en Neo4j: {nombre_documento}")
 
+# ==========================
+# ▶️ Ejecutar
+# ==========================
 def main():
-    driver = conectar_neo4j()
-    if driver:
-        cargar_json_a_neo4j(driver)
-        driver.close()
+    json_path = "jsons/AUPSA_ACE_JN_0062_001.json"  # Ajusta la ruta según el archivo que tengas
+    create_nodes_and_relationships(json_path)
+    print("✅ Datos cargados en Neo4j correctamente.")
 
 if __name__ == "__main__":
     main()
+    driver.close()
