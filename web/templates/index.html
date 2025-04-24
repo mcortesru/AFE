@@ -15,9 +15,15 @@
         <div class="buttons-section">
             <button onclick="processFile('resumen')">Resume el documento</button>
             <button onclick="processFile('clasificacion')">Clasifica el documento</button>
-            <button onclick="processFile('tokens')">Obten los NERs</button>
             <button onclick="processFile('palabras')">Obten las palabras clave</button>
             <button onclick="processFile('chatbot')">Abrir chatbot</button>
+            <div class="ner-wrapper">
+                <div class="ner-controls">
+                    <button onclick="processFile('tokens')">Obten los NERs</button>
+                    <input type="number" id="ner-threshold" min="0" max="0.99" step="0.01" value="0.85">
+                </div>
+                <span class="ner-label">Umbral de confianza (0–0.99)</span>
+            </div>
         </div>
         <div class="output-section">
             <p id="output">Aquí aparecerá el texto procesado.</p>

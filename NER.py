@@ -24,6 +24,7 @@ def quitar_guion_y_espacio(texto):
     return texto_limpiado
 
 
+
 start_time = time.time()  # Registrar el tiempo de inicio
 
 if len(sys.argv) < 2:
@@ -38,6 +39,13 @@ if len(sys.argv) < 2:
 
 else:
     path_al_archivo = sys.argv[1]
+
+try:
+    confidence_filter = float(sys.argv[2])
+    if not (0 <= confidence_filter <= 0.99):
+        confidence_filter = 0.99
+except:
+    confidence_filter = 0.99
 
 try:
     texto_original = extraer_texto_pdf(path_al_archivo)
@@ -158,7 +166,7 @@ try:
     rows_filtered = []
     for entity, details in all_entities.items():
         count_models = sum(1 for model in details if model in ["Flair", "BERT", "Roberta"] and details[model] != ("-","-"))
-        is_high_confidence = any(details[model][1] > 0.7 for model in details if model in ["Flair", "BERT"])
+        is_high_confidence = any(details[model][1] > confidence_filter for model in details if model in ["Flair", "BERT"])
         if count_models > 1 or (count_models == 1 and is_high_confidence):
             row = [entity]
             for model in ["Flair", "BERT", "Roberta"]:

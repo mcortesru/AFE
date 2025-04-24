@@ -64,14 +64,14 @@ def clasificacion(temp_path):
         return "El archivo de resultados no se encontró o no se pudo crear."
 
 
-def tokens(temp_path):
+def tokens(temp_path, threshold="0.99"):
     """Ejecuta el script de reconocimiento de entidades (NER) en el entorno virtual."""
     print("Obteniendo los NERs del documento...")
 
     ner_script = os.path.join(os.path.dirname(__file__), '..', 'NER.py')
     file_path = os.path.join(TMP_DIR, 'NERS.txt')
 
-    result = subprocess.run([VENV_PYTHON, ner_script, temp_path], capture_output=True, text=True)
+    result = subprocess.run([VENV_PYTHON, ner_script, temp_path, threshold], capture_output=True, text=True)
 
     if result.stderr:
         print("Error al ejecutar el script de obtención de NERs:", result.stderr)

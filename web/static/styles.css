@@ -100,3 +100,27 @@ tbody tr:hover {
     border-radius: 5px;
     text-align: left;
 }
+
+/* CSS para ajustar el nivel de confianza de los NER*/
+.ner-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.ner-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#ner-threshold {
+    width: 70px;
+    padding: 5px;
+}
+
+.ner-label {
+    font-size: 0.85em;
+    margin-top: 4px;
+}

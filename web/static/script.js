@@ -31,6 +31,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('buttonId', buttonId);
+        if (buttonId === 'tokens') {
+            const threshold = document.getElementById("ner-threshold").value || "0.99";
+            formData.append('threshold', threshold);
+        }
+        
 
         document.getElementById("output").style.display = "block";
         document.getElementById("chat-section").style.display = "none";
