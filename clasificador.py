@@ -41,7 +41,10 @@ def procesar_archivo(ruta_archivo):
     X = vectorizador.transform([texto])
     df = pd.DataFrame(X.toarray(), columns=vectorizador.get_feature_names_out())
     predicciones = predict_model(modelo, data=df)
-    return predicciones['prediction_label'].iloc[0]
+    etiqueta = predicciones['prediction_label'].iloc[0]
+    confianza = predicciones['prediction_score'].iloc[0]
+    return etiqueta, confianza
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -53,7 +56,9 @@ if __name__ == "__main__":
         print(f"[ERROR] El archivo {ruta_archivo} no existe.")
         sys.exit(1)
 
-    tipo_documento = procesar_archivo(ruta_archivo)
+    tipo_documento, confianza = procesar_archivo(ruta_archivo)
+    print(f"El tipo de documento es: {tipo_documento} (confianza: {confianza:.2f})")
+
     print(f"El tipo de documento es: {tipo_documento}")
 
     # Definir carpeta temporal de manera segura
@@ -65,6 +70,6 @@ if __name__ == "__main__":
 
     # Guardar el resultado en un archivo
     with open(output_file, 'w') as file:
-        file.write("El tipo de documento es: " + tipo_documento)
+        file.write(f"El tipo de documento es: {tipo_documento} (confianza: {confianza:.2f})")
 
     print(f"[INFO] Resultado guardado en {output_file}")
