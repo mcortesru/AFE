@@ -68,7 +68,7 @@ def clasificacion(temp_path):
 
 def tokens(temp_path, threshold="0.99"):
     """Ejecuta el script de reconocimiento de entidades (NER) en el entorno virtual."""
-    print("Obteniendo los NERs del documento...")
+    print(f"Obteniendo los NERs del documento con nivel de confianza de {threshold}...")
 
     ner_script = os.path.join(os.path.dirname(__file__), '..', 'NER.py')
     file_path = os.path.join(TMP_DIR, 'NERS.txt')
@@ -148,6 +148,8 @@ def process_file():
     print(f"[DEBUG] buttonId recibido: {button_id}")
     print(f"[DEBUG] Archivo recibido: {file.filename if file else 'Ninguno'}")
 
+    threshold = request.form.get('threshold', '0.99')
+
     # Solo exigir archivo si no es chatbot-general
     if button_id != 'chatbot-general' and (not file or file.filename == ""):
         return jsonify({"error": "No se recibió ningún archivo"}), 400
@@ -171,7 +173,7 @@ def process_file():
     elif button_id == 'clasificacion':
         message = clasificacion(temp_path)
     elif button_id == 'tokens':
-        message = tokens(temp_path)
+        message = tokens(temp_path, threshold)
     elif button_id == 'palabras':
         message = palabras(temp_path)
     elif button_id == 'chatbot':

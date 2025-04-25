@@ -20,7 +20,7 @@
             <button onclick="processFile('chatbot-general')">Chatbot general</button>
             <div class="ner-wrapper">
                 <div class="ner-controls">
-                    <button onclick="processFile('tokens')">Obten los NERs</button>
+                    <button type="button" onclick="processFile('tokens', event)">Obten los NERs</button>
                     <input type="number" id="ner-threshold" min="0" max="0.99" step="0.01" value="0.85">
                 </div>
                 <span class="ner-label">Umbral de confianza (0–0.99)</span>

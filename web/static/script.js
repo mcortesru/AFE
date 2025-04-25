@@ -27,8 +27,10 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.append('file', file);
         }
     
+        const threshold = document.getElementById("ner-threshold").value || "0.99";
+        console.log("Nivel de confianza: " + threshold);
+
         if (buttonId === 'tokens') {
-            const threshold = document.getElementById("ner-threshold").value || "0.99";
             formData.append('threshold', threshold);
         }
     
@@ -54,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
     
             if (buttonId === 'resumen') output.textContent = 'Resumiendo texto...';
             else if (buttonId === 'clasificacion') output.textContent = 'Clasificando texto...';
-            else if (buttonId === 'tokens') output.textContent = 'Obteniendo NERs del texto...';
+            else if (buttonId === 'tokens') output.textContent = 'Obteniendo NERs del texto con una confianza de ' + threshold + '...';
             else if (buttonId === 'palabras') output.textContent = 'Obteniendo palabras clave del texto...';
         }
     
