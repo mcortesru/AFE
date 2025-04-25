@@ -1,134 +1,126 @@
 document.addEventListener("DOMContentLoaded", function () {
-    let documentUploaded = false;  // Rastrea si se ha subido un archivo
+    let documentUploaded = false;
 
     document.getElementById("file-upload").addEventListener("change", function () {
-        // Ocultar el chat
         document.getElementById("chat-section").style.display = "none";
-        
-        // Restablecer el mensaje de salida
+        document.getElementById("chat-box").innerHTML = "";
         document.getElementById("output").textContent = "Aquí aparecerá el texto procesado.";
-    });    
+        sessionStorage.removeItem("chatMode");
+    });
 
     function toggleSections(showChat) {
-        let chatSection = document.getElementById("chat-section");
-        if (showChat) {
-            chatSection.style.display = "block";
-        } else {
-            chatSection.style.display = "none";
-        }
+        document.getElementById("chat-section").style.display = showChat ? "block" : "none";
     }
 
     window.processFile = function (buttonId) {
-        const outputElement = document.getElementById('output');
-        const fileInput = document.getElementById('file-upload');
+        const fileInput = document.getElementById("file-upload");
         const file = fileInput.files[0];
-
-        if (!file) {
+    
+        if (!file && buttonId !== 'chatbot-general') {
             alert("Por favor, selecciona un archivo antes de procesarlo.");
             return;
         }
-
+    
         const formData = new FormData();
-        formData.append('file', file);
         formData.append('buttonId', buttonId);
+        if (file && buttonId !== 'chatbot-general') {
+            formData.append('file', file);
+        }
+    
         if (buttonId === 'tokens') {
             const threshold = document.getElementById("ner-threshold").value || "0.99";
             formData.append('threshold', threshold);
         }
-        
-
-        document.getElementById("output").style.display = "block";
-        document.getElementById("chat-section").style.display = "none";
-
-        if (buttonId === 'resumen') {
-            outputElement.textContent = 'Resumiendo texto...';
-        } else if (buttonId === 'clasificacion') {
-            outputElement.textContent = 'Clasificando texto...';
-        } else if (buttonId === 'tokens') {
-            outputElement.textContent = 'Obteniendo NERs del texto...';
-        } else if (buttonId === 'palabras') {
-            outputElement.textContent = 'Obteniendo palabras clave del texto...';
-        } else if (buttonId === 'chatbot') {
-            outputElement.textContent = 'Cargando chatbot...';
+    
+        const output = document.getElementById("output");
+        output.style.display = "block";
+        output.textContent = "";
+    
+        if (buttonId === 'chatbot' || buttonId === 'chatbot-general') {
+            documentUploaded = true;
             document.getElementById("chat-box").innerHTML = "";
+            toggleSections(true);
+            sessionStorage.setItem("chatMode", buttonId === 'chatbot' ? "individual" : "general");
+    
+            output.textContent = buttonId === 'chatbot'
+                ? 'Chatbot individual cargado correctamente. Ya puedes hacer preguntas.'
+                : 'Chatbot general activado. Escribe tu pregunta abajo.';
+    
+            // ✅ NO ejecutar el fetch si es chatbot-general
+            if (buttonId === 'chatbot-general') return;
+        } else {
+            toggleSections(false);
+            sessionStorage.removeItem("chatMode");
+    
+            if (buttonId === 'resumen') output.textContent = 'Resumiendo texto...';
+            else if (buttonId === 'clasificacion') output.textContent = 'Clasificando texto...';
+            else if (buttonId === 'tokens') output.textContent = 'Obteniendo NERs del texto...';
+            else if (buttonId === 'palabras') output.textContent = 'Obteniendo palabras clave del texto...';
         }
-
-        fetch('http://127.0.0.1:5001/process', {
+    
+        // 🔄 Solo se ejecuta fetch si no es chatbot-general
+        fetch('http://127.0.0.1:5002/process', {
             method: 'POST',
             body: formData,
         })
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Respuesta de red no fue ok');
-            }
+            if (!response.ok) throw new Error('Respuesta de red no fue ok');
             return response.json();
         })
         .then(data => {
-            if (buttonId === 'chatbot') {
-                documentUploaded = true; // Se confirma que el documento fue subido
-                toggleSections(true);  // Mostrar el chat
-                outputElement.textContent = 'Documento cargado correctamente'; // Esto limpia el mensaje de carga
-            } else {
-                outputElement.innerHTML = data.message.replace(/\\n/g, '<br>');
+            if (buttonId !== 'chatbot') {
+                output.innerHTML = data.message.replace(/\\n/g, '<br>');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            outputElement.textContent = 'Error al procesar la solicitud';
+            output.textContent = 'Error al procesar la solicitud';
         });
     };
+    
 
     window.sendMessage = function () {
-        if (!documentUploaded) {
+        const mode = sessionStorage.getItem("chatMode");
+        if (mode === "individual" && !documentUploaded) {
             alert("Sube un documento primero.");
             return;
         }
-    
-        let inputField = document.getElementById("chat-input");
-        let message = inputField.value.trim();
+
+        const inputField = document.getElementById("chat-input");
+        const message = inputField.value.trim();
         if (message === "") return;
-    
-        let chatBox = document.getElementById("chat-box");
-    
-        let userMessage = document.createElement("div");
+
+        const chatBox = document.getElementById("chat-box");
+
+        const userMessage = document.createElement("div");
         userMessage.className = "message user-message";
         userMessage.innerText = "Tú: " + message;
         chatBox.appendChild(userMessage);
-    
         inputField.value = "";
-    
-        fetch("/chat", {
+
+        const endpoint = mode === "general" ? "/chat-general" : "/chat";
+
+        fetch(endpoint, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: message })
         })
         .then(async response => {
-            console.log("🛑 Respuesta completa del servidor:", response);
-            let data;
-            try {
-                data = await response.json();
-            } catch (error) {
-                console.error("🛑 Error convirtiendo la respuesta a JSON:", error);
-                return;
-            }
-    
-            console.log("🛑 JSON recibido:", data);
+            const data = await response.json();
             if (data.error) {
                 alert("Error: " + data.error);
                 return;
             }
-    
-            let botMessage = document.createElement("div");
+
+            const botMessage = document.createElement("div");
             botMessage.className = "message bot-message";
-            botMessage.innerText = "Bot: " + data.response;
+            botMessage.innerText = mode === "general" ? data.response : "Bot: " + data.response;
+
             chatBox.appendChild(botMessage);
-    
             chatBox.scrollTop = chatBox.scrollHeight;
         })
         .catch(error => {
-            console.error("🛑 Error en la solicitud:", error);
+            console.error("Error en la solicitud:", error);
         });
-    };    
+    };
 });

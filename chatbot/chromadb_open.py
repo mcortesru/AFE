@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 
 # Configuración del servidor Flask
+flask_port = int(os.getenv("FLASK_PORT", 5002))
 app = Flask(__name__)
 CORS(app)
 
@@ -199,6 +200,6 @@ if __name__ == "__main__":
 
     if args.modo == "servidor":
         print("[INFO] Iniciando chatbot en modo servidor...")
-        app.run(host="0.0.0.0", port=5001, debug=True)
+        app.run(host="0.0.0.0", port=flask_port, debug=True)
     elif args.modo == "interactivo":
         chatbot_interactivo(args.documento)

@@ -124,3 +124,19 @@ tbody tr:hover {
     font-size: 0.85em;
     margin-top: 4px;
 }
+
+/* CSS para mostrar las 4 respuestas */
+
+.bot-message h4 {
+    margin: 10px 0 5px;
+    color: #4CAF50;
+}
+
+.bot-message pre {
+    background-color: #f8f8f8;
+    padding: 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+}

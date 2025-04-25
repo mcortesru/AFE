@@ -6,12 +6,14 @@ from werkzeug.utils import secure_filename
 import logging
 from chromadb_open import chatbot_inicializar, chat
 import sys
+from dotenv import load_dotenv
+
 
 logging.basicConfig(level=logging.DEBUG)
 print("Iniciando Flask...")
-
+load_dotenv()
+flask_port = int(os.getenv("FLASK_PORT", 5002))
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
 CORS(app)
 
 # Asegurar que la carpeta de uploads existe
@@ -99,6 +101,39 @@ def palabras(temp_path):
 
     return result.stdout if result.stdout else f"No se pudo obtener las palabras clave. Error: {result.stderr}"
 
+def ejecutar_chatbot_general_con_pregunta(pregunta):
+    """Ejecuta el script chat_hibrido.py con una pregunta como argumento y devuelve todas las respuestas."""
+    print(f"Ejecutando chatbot general con pregunta: {pregunta}")
+
+    script_path = os.path.join(os.path.dirname(__file__), '.', 'chat_hibrido.py')
+    result = subprocess.run(
+        [VENV_PYTHON, script_path, pregunta],
+        capture_output=True,
+        text=True
+    )
+
+    # Capturar y mostrar la salida estándar y los errores
+    if result.stdout:
+        print(f"[DEBUG] Salida de chat_hibrido.py: {result.stdout}")
+    if result.stderr:
+        print(f"[ERROR] Error en chat_hibrido.py: {result.stderr}")
+
+    if result.stderr:
+        print("Error al ejecutar el chatbot general:", result.stderr)
+
+    output = result.stdout
+
+    # Extraer cada bloque de respuesta
+    respuestas = {}
+    bloques = ["SPACY", "CYPHER", "CHROMA", "COMBINADA"]
+    for i, tag in enumerate(bloques):
+        inicio = output.find(f"=== RESPUESTA {tag} ===")
+        fin = output.find(f"=== RESPUESTA {bloques[i+1]} ===") if i + 1 < len(bloques) else len(output)
+        if inicio != -1:
+            respuestas[tag.lower()] = output[inicio + len(f"=== RESPUESTA {tag} ==="):fin].strip()
+
+    return respuestas
+
 
 @app.route('/')
 def index():
@@ -107,18 +142,27 @@ def index():
 
 @app.route('/process', methods=['POST'])
 def process_file():
-    button_id = request.form.get('buttonId')
     file = request.files.get('file')
+    button_id = request.form.get('buttonId')
 
     print(f"[DEBUG] buttonId recibido: {button_id}")
     print(f"[DEBUG] Archivo recibido: {file.filename if file else 'Ninguno'}")
-    
-    if not file:
+
+    # Solo exigir archivo si no es chatbot-general
+    if button_id != 'chatbot-general' and (not file or file.filename == ""):
         return jsonify({"error": "No se recibió ningún archivo"}), 400
 
-    filename = secure_filename(file.filename)
-    temp_path = os.path.join(TMP_DIR, filename)
-    file.save(temp_path)
+    temp_path = None
+    filename = None
+
+    # Procesar el archivo si está presente y válido
+    if file and file.filename != "":
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(TMP_DIR, filename)
+        file.save(temp_path)
+        print(f"[DEBUG] Archivo guardado en: {temp_path}")
+    else:
+        print(f"[DEBUG] No se procesó ningún archivo (posiblemente innecesario)")
 
     message = "Acción no reconocida."
 
@@ -137,8 +181,20 @@ def process_file():
             message = f"Chatbot inicializado con {filename}."
         else:
             message = "No se pudo procesar el documento para el chatbot."
+    elif button_id == 'chatbot-general':
+        pregunta = request.form.get("question", "")
+        if not pregunta:
+            return jsonify({"error": "No se proporcionó ninguna pregunta"}), 400
+
+        respuestas = ejecutar_chatbot_general_con_pregunta(pregunta)
+        html_respuesta = ""
+        for nombre, contenido in respuestas.items():
+            html_respuesta += f"<h4 style='color:#4CAF50'>Respuesta {nombre.upper()}</h4><pre>{contenido}</pre><hr>"
+
+        return jsonify({"message": html_respuesta})
 
     return jsonify({"message": message})
+
 
 @app.route('/chat', methods=['POST'])
 def chat_endpoint():
@@ -154,5 +210,21 @@ def chat_endpoint():
     respuesta = chat(pregunta)
     return jsonify({"response": respuesta})
 
+@app.route('/chat-general', methods=['POST'])
+def chat_general_endpoint():
+    data = request.json
+    pregunta = data.get("message", "").strip()
+
+    if not pregunta:
+        return jsonify({"error": "No se proporcionó ninguna pregunta."}), 400
+
+    respuestas = ejecutar_chatbot_general_con_pregunta(pregunta)
+    respuesta_texto = ""
+    for nombre, contenido in respuestas.items():
+        respuesta_texto += f"{nombre.upper()}:\n{contenido}\n\n"
+
+    return jsonify({"response": respuesta_texto.strip()})
+
+
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5001)
+    app.run(host="0.0.0.0", port=flask_port)

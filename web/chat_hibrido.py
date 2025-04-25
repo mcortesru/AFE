@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI()
-BASE_PATH = Path("AUPSA_ACE_JN_Correspondencia Presidencia")
+BASE_PATH = Path(__file__).resolve().parent.parent / "AUPSA_ACE_JN_Correspondencia Presidencia"
 CHROMA_DB_PATH = "./chroma_db_prueba"
 COLLECTION_NAME = "coleccion_prueba"
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -46,6 +46,7 @@ from chromadb.errors import InvalidCollectionException
 
 try:
     collection = chroma_client.get_collection(name=COLLECTION_NAME)
+    print(f"[OK] La colección '{COLLECTION_NAME}' existe")
 except InvalidCollectionException:
     print(f"[ERROR] La colección '{COLLECTION_NAME}' no existe. Por favor, crea la base de datos con el script correspondiente.")
     sys.exit(1)
@@ -140,9 +141,12 @@ def load_text_from_docs(docs_info):
     return texts
 
 def buscar_texto_relevante(pregunta):
+    print("[DEBUG] Iniciando búsqueda de texto relevante con ChromaDB...")
     vector = model.encode(pregunta).tolist()
     with suppress_low_level_output():
-        resultado = collection.query(query_embeddings=[vector], n_results=5)    
+        print("[DEBUG] Ejecutando la consulta en ChromaDB...")
+        resultado = collection.query(query_embeddings=[vector], n_results=5)
+    print("[DEBUG] Resultado obtenido de ChromaDB.")  
     docs = resultado["documents"][0] if resultado["documents"] else []
     sources = set()
     for m in resultado["metadatas"][0]:
@@ -153,6 +157,7 @@ def buscar_texto_relevante(pregunta):
     return "\n".join(docs), sources
 
 def generate_answer(question, documents_text):
+    print("[DEBUG] Generando respuesta con OpenAI...")
     prompt = f"""
 Responde a esta pregunta basada únicamente en los siguientes documentos históricos:
 
@@ -168,99 +173,92 @@ Responde a esta pregunta basada únicamente en los siguientes documentos histór
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}]
     )
+    print(f"[DEBUG] Respuesta generada de cahtgpt generada")
     return response.choices[0].message.content
 
 
 # --- Ejecución principal ---
 if __name__ == "__main__":
-    try:
-        while True:
-            pregunta = input(" Introduce tu pregunta: ")
-            if not pregunta.strip():
-                continue
-
-            # 🧠 Método 1: spaCy + Neo4j
-            print("\n🔍 Buscando por entidades (spaCy + Neo4j)...")
+    if len(sys.argv) == 2:
+        pregunta = sys.argv[1]
+        print(f"[DEBUG] Pregunta recibida: {pregunta}")
+        
+        try:
             entidades = extract_entities(pregunta)
+            print(f"[DEBUG] Entidades extraídas: {entidades}")
+
             documentos_entidades = find_documents_related_to_entities(entidades)
+            print(f"[DEBUG] Documentos relacionados a las entidades: {documentos_entidades}")
+
             textos_spacy = load_text_from_docs(documentos_entidades)
-            if textos_spacy:
-                respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy))
-            else:
-                respuesta_spacy = "⚠️ No se encontraron documentos relevantes con spaCy."
+            print(f"[DEBUG] Textos cargados de spaCy: {len(textos_spacy)} textos")
 
-            # 🧠 Método 2: Cypher generado por GPT
-            print("\n📜 Generando consulta Cypher con GPT...")
+            respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy)) if textos_spacy else "⚠️ No se encontraron documentos relevantes con spaCy."
+            print(f"[DEBUG] Respuesta de spaCy: {respuesta_spacy}")
+
             cypher = generar_cypher(pregunta)
+            print(f"[DEBUG] Consulta Cypher generada: {cypher}")
+
             documentos_cypher = run_cypher(cypher)
+            print(f"[DEBUG] Documentos de Cypher: {documentos_cypher}")
+
             textos_cypher = load_text_from_docs(documentos_cypher)
-            if textos_cypher:
-                respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher))
-            else:
-                respuesta_cypher = "⚠️ No se encontraron documentos relevantes con Cypher generado por GPT."
+            print(f"[DEBUG] Textos cargados de Cypher: {len(textos_cypher)} textos")
 
-            # 🧠 Método 3: Vector search con ChromaDB
-            print("\n📚 Buscando semánticamente con ChromaDB...")
+            respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher)) if textos_cypher else "⚠️ No se encontraron documentos relevantes con Cypher."
+            print(f"[DEBUG] Respuesta de Cypher: {respuesta_cypher}")
+
             contexto_vectorial, fuentes_vectoriales = buscar_texto_relevante(pregunta)
-            if contexto_vectorial.strip():
-                respuesta_vectorial = generate_answer(pregunta, contexto_vectorial)
-            else:
-                respuesta_vectorial = "⚠️ No se encontraron documentos relevantes con ChromaDB."
+            print(f"[DEBUG] Resultados de ChromaDB: {contexto_vectorial}")
 
-            # 🧠 Método 4: Juntar todos los documentos
-            documentos_usados_final = set()
-            documentos_usados_final.update(documentos_entidades)
-            documentos_usados_final.update(documentos_cypher)
-            documentos_usados_final.update(fuentes_vectoriales)
-            for item in documentos_usados_final:
-                assert isinstance(item, tuple) and len(item) == 2 and all(isinstance(x, str) for x in item), f"Formato incorrecto: {item}"
+            respuesta_vectorial = generate_answer(pregunta, contexto_vectorial) if contexto_vectorial.strip() else "⚠️ No se encontraron documentos con ChromaDB."
+            print(f"[DEBUG] Respuesta de ChromaDB: {respuesta_vectorial}")
 
-            documentos_usados_dict = {}
-            for nombre, ruta in documentos_usados_final:
-                if nombre not in documentos_usados_dict:
-                    documentos_usados_dict[nombre] = ruta
-            
-            # 📄 Cargar textos desde los documentos combinados
-            textos_combinados_final = load_text_from_docs(documentos_usados_dict.items())
-            
-            if textos_combinados_final:
-                texto_final = "\n\n".join(textos_combinados_final)
-                respuesta_final_combinada = generate_answer(pregunta, texto_final)
-            else:
-                respuesta_final_combinada = "⚠️ No se encontró contenido relevante en ninguno de los métodos."
+            documentos_usados = set()
+            documentos_usados.update(documentos_entidades)
+            documentos_usados.update(documentos_cypher)
+            documentos_usados.update(fuentes_vectoriales)
+            textos_finales = load_text_from_docs(documentos_usados)
+            print(f"[DEBUG] Textos finales: {len(textos_finales)} textos")
 
-            # 🔽 Mostrar resultados por método
-            print("\n\n🧠 RESPUESTA spaCy + Neo4j:\n")
-            print(respuesta_spacy)
+            respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
+            print(f"[DEBUG] Respuesta final combinada: {respuesta_final_combinada}")
 
-            print("\n\n🧠 RESPUESTA Cypher generado por GPT:\n")
-            print(respuesta_cypher)
+        except Exception as e:
+            print(f"[ERROR] Se produjo un error: {e}")
 
-            print("\n\n🧠 RESPUESTA Vectorial con ChromaDB:\n")
-            print(respuesta_vectorial)
+        pregunta = sys.argv[1]
+        # Ejecutar procesamiento único sin bucle interactivo
+        entidades = extract_entities(pregunta)
+        documentos_entidades = find_documents_related_to_entities(entidades)
+        textos_spacy = load_text_from_docs(documentos_entidades)
+        respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy)) if textos_spacy else "⚠️ No se encontraron documentos relevantes con spaCy."
 
-            print("\n\n🧠 RESPUESTA COMBINADA:\n")
-            print(respuesta_final_combinada)
+        cypher = generar_cypher(pregunta)
+        documentos_cypher = run_cypher(cypher)
+        textos_cypher = load_text_from_docs(documentos_cypher)
+        respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher)) if textos_cypher else "⚠️ No se encontraron documentos relevantes con Cypher."
 
-            print("\n📌 Info extra:")
-            
-            print(f"- Entidades detectadas: {entidades}")
-            
-            print("- Documentos spaCy:")
-            for nombre, ruta in sorted(documentos_entidades):
-                print(f"  - {nombre} ({ruta})")
+        contexto_vectorial, fuentes_vectoriales = buscar_texto_relevante(pregunta)
+        respuesta_vectorial = generate_answer(pregunta, contexto_vectorial) if contexto_vectorial.strip() else "⚠️ No se encontraron documentos con ChromaDB."
 
-            print("- Documentos Cypher:")
-            for nombre, ruta in sorted(documentos_cypher):
-                print(f"  - {nombre} ({ruta})")
+        documentos_usados = set()
+        documentos_usados.update(documentos_entidades)
+        documentos_usados.update(documentos_cypher)
+        documentos_usados.update(fuentes_vectoriales)
+        textos_finales = load_text_from_docs(documentos_usados)
+        respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
 
-            print("- Fuentes vectoriales:")
-            for nombre, ruta in sorted(fuentes_vectoriales):
-                print(f"  - {nombre} ({ruta})")
+        print("=== RESPUESTA SPACY ===")
+        print(respuesta_spacy)
 
-            print("- Documentos usados para la respuesta final:")
-            for nombre, ruta in sorted(documentos_usados_dict.items()):
-                print(f"  - {nombre} ({ruta})")
-    except KeyboardInterrupt:
-        print("\n👋 Salida del chatbot. ¡Hasta la próxima!")
-        driver.close()
+        print("=== RESPUESTA CYPHER ===")
+        print(respuesta_cypher)
+
+        print("=== RESPUESTA CHROMA ===")
+        print(respuesta_vectorial)
+
+        print("=== RESPUESTA COMBINADA ===")
+        print(respuesta_final_combinada)
+
+
