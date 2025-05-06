@@ -250,15 +250,19 @@ if __name__ == "__main__":
         respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
 
         print("=== RESPUESTA SPACY ===")
+        print(f"[Documentos usados: {[name for name, _ in documentos_entidades]}]")
         print(respuesta_spacy)
 
         print("=== RESPUESTA CYPHER ===")
+        print(f"[Documentos usados: {[name for name, _ in documentos_cypher]}]")
         print(respuesta_cypher)
 
         print("=== RESPUESTA CHROMA ===")
+        print(f"[Documentos usados: {[name for name, _ in fuentes_vectoriales]}]")
         print(respuesta_vectorial)
 
         print("=== RESPUESTA COMBINADA ===")
+        print(f"[Documentos usados: {[name for name, _ in documentos_usados]}]")
         print(respuesta_final_combinada)
 
 
