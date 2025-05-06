@@ -255,6 +255,7 @@ if __name__ == "__main__":
 
         print("=== RESPUESTA CYPHER ===")
         print(f"[Documentos usados: {[name for name, _ in documentos_cypher]}]")
+        print(f"[Consulta Cypher usada: {cypher}]")
         print(respuesta_cypher)
 
         print("=== RESPUESTA CHROMA ===")
