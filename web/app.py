@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.DEBUG)
 print("Iniciando Flask...")
 load_dotenv()
-flask_port = int(os.getenv("FLASK_PORT", 5002))
+flask_port = int(os.getenv("FLASK_PORT", 5003))
 app = Flask(__name__)
 CORS(app)
 

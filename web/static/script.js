@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     
         // 🔄 Solo se ejecuta fetch si no es chatbot-general
-        fetch('http://127.0.0.1:5002/process', {
+        fetch('http://127.0.0.1:5003/process', {
             method: 'POST',
             body: formData,
         })
