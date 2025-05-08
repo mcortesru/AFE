@@ -31,8 +31,10 @@
         </div>
         <div class="chat-section" id="chat-section" style="display: none;">
             <div class="chat-box" id="chat-box"></div>
-            <input type="text" id="chat-input" placeholder="Escribe tu pregunta...">
-            <button onclick="sendMessage()">Enviar</button>
+            <div class="chat-controls">
+                <input type="text" id="chat-input" placeholder="Escribe tu pregunta...">
+                <button onclick="sendMessage()">Enviar</button>
+            </div>
         </div>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
