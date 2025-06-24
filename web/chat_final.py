@@ -17,8 +17,9 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI()
 BASE_PATH = Path(__file__).resolve().parent.parent / "AUPSA_ACE_JN_Correspondencia Presidencia"
-CHROMA_DB_PATH = "./chroma_db_prueba"
-COLLECTION_NAME = "coleccion_prueba"
+CHROMA_DB_PATH = "./chroma_db_final"
+COLLECTION_NAME = "coleccion_final"
+
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # spaCy
@@ -74,64 +75,76 @@ def extract_entities(pregunta):
 def label_to_neo4j(label):
     return {
         "PER": "Person",
-        "ORG": "Organization",
         "LOC": "Location",
         "GPE": "Location",
-        "DATE": "Date"
+        "ORG": "Person"  # Tratas entidades como Persona jurídica (ej)
     }.get(label, None)
+
 
 def find_documents_related_to_entities(entities):
     docs = set()
     with driver.session() as session:
         for name, label in entities:
-            neo4j_label = label_to_neo4j(label)
-            if not neo4j_label:
-                continue
-            result = session.run(
-                f"""
-                MATCH (e:{neo4j_label} {{name: $name}})<-[:MENTIONS]-(d:Document)
-                RETURN d.name AS doc_name, d.pdf_path AS pdf_path
-                """,
-                name=name
-            )
-            for record in result:
-                docs.add((record["doc_name"], record["pdf_path"]))
+            if label == "PER":
+                name_parts = name.split()
+                condiciones = " AND ".join([
+                    f'(toLower(COALESCE(p.name, "")) CONTAINS toLower("{part}") OR ' +
+                    f'toLower(COALESCE(p.surname1, "")) CONTAINS toLower("{part}") OR ' +
+                    f'toLower(COALESCE(p.surname2, "")) CONTAINS toLower("{part}"))'
+                    for part in name_parts
+                ])
+                consulta = f"""
+                MATCH (d:Document)<-[:MENTIONED_IN]-(p:Person)
+                WHERE {condiciones}
+                RETURN DISTINCT d.file_name AS doc_name, d.relative_path AS pdf_path
+                """
+            else:
+                neo4j_label = label_to_neo4j(label)
+                if not neo4j_label:
+                    continue
+                consulta = f"""
+                MATCH (d:Document)-[:MENTIONED_IN]->(e:{neo4j_label})
+                WHERE toLower(e.name) CONTAINS toLower("{name}")
+                RETURN d.file_name AS doc_name, d.relative_path AS pdf_path
+                """
+
+            try:
+                result = session.run(consulta)
+                for record in result:
+                    docs.add((record["doc_name"], record["pdf_path"]))
+            except Exception as e:
+                print(f"[⚠️] Error ejecutando consulta Cypher para '{name}': {e}")
     return list(docs)
 
+
+
+
 def generar_cypher(pregunta):
-    system_prompt = """
-    Eres un experto en bases de datos Neo4j. Tu tarea es generar una consulta Cypher que devuelva los documentos más relevantes para responder a la pregunta de un usuario, basándote en la información contenida en el grafo.
+    system_prompt = f"""
+Eres un asistente experto en generar consultas Cypher para Neo4j.
+Tu única tarea es, dada una pregunta en lenguaje natural, generar **una única consulta Cypher** que recupere los documentos históricos más relevantes.
 
-    Estructura del grafo:
-    - (:Document {name, creation_date, author, pdf_path})
-    -[:MENTIONS]->(:Person {name})
-    -[:MENTIONS]->(:Organization {name})
-    -[:MENTIONS]->(:Location {name})
-    -[:MENTIONS]->(:Date {name})
+⚠️ IMPORTANTE:
+- Devuelve SOLO la consulta Cypher, sin explicaciones, sin encabezados ni formato Markdown.
+- La consulta debe devolver: d.file_name y d.relative_path.
+- Usa funciones como toLower(), CONTAINS, COALESCE() y date() para asegurar coincidencias robustas.
+- El grafo tiene nodos:
+  - Document con propiedades: file_name, title, summary, sheet_number, issue_date, relative_path
+  - Person con propiedades: name, surname1, surname2, person_type
+  - Location con propiedad name
+  - DocumentType con propiedad name
+  - Folder y Box
 
-    IMPORTANTE:
-    - Devuelve solo la consulta Cypher. Nada más.
-    - La consulta debe recuperar los nodos de tipo Document (`d.name`, `d.pdf_path`) que estén relacionados con nodos cuyo nombre sea relevante para la pregunta.
-    - No hagas búsquedas por `pdf_path`, sino por los nodos conectados.
-    - Si no es posible generar una consulta concreta, devuelve una consulta general que busque documentos conectados a nodos relevantes por su tipo (por ejemplo, Person o Location).
+Relaciones:
+- (:Person)-[:MENTIONED_IN]->(:Document)
+- (:Document)-[:LOCATED_AT]->(:Location)
+- (:Document)-[:HAS_TYPE]->(:DocumentType)
+- (:Document)-[:IN_FOLDER]->(:Folder)-[:BELONGS_TO]->(:Box)
 
-    Ejemplos:
+Pregunta:
+{pregunta}
 
-    Pregunta: ¿En qué documentos aparece Antonio Fuertes Grasa?
-    Cypher:
-    MATCH (d:Document)-[:MENTIONS]->(p:Person {name: "Antonio Fuertes Grasa"})
-    RETURN d.name, d.pdf_path
-
-    Pregunta: ¿Qué documentos mencionan a la diócesis de Zaragoza?
-    Cypher:
-    MATCH (d:Document)-[:MENTIONS]->(o:Organization {name: "Diócesis de Zaragoza"})
-    RETURN d.name, d.pdf_path
-
-    Pregunta: ¿Qué documentos están fechados en mayo de 1968?
-    Cypher:
-    MATCH (d:Document)-[:MENTIONS]->(dt:Date)
-    WHERE dt.name CONTAINS "mayo" AND dt.name CONTAINS "1968"
-    RETURN d.name, d.pdf_path
+Cypher:
     """
 
     response = client.chat.completions.create(
@@ -143,31 +156,42 @@ def generar_cypher(pregunta):
     )
     consulta = response.choices[0].message.content.strip()
 
-    for prefix in ["Cypher:", "```cypher", "```"]:
-        if consulta.startswith(prefix):
-            consulta = consulta.replace(prefix, "").strip()
+    # 🧼 Extraer solo la consulta que comience con MATCH o similar
+    consulta = response.choices[0].message.content.strip()
+
+    # 🧼 Extraer solo la consulta que comience con MATCH o similar
+    import re
+    match = re.search(r"\b(MATCH|WITH|CALL)\b[\s\S]+", consulta)
+    consulta = match.group(0).strip() if match else ""
 
     return consulta
 
 def run_cypher(cypher):
     with driver.session() as session:
         result = session.run(cypher)
-        return [(record["d.name"], record["d.pdf_path"]) for record in result]
+        # Usa los nombres exactos devueltos por Cypher y no añadas BASE_PATH aquí.
+        return [(record["d.file_name"], record["d.relative_path"]) for record in result]
+
+
 
 def load_text_from_docs(docs_info):
     texts = []
     for name, rel_path in docs_info:
-        full_path = BASE_PATH / Path(rel_path)
+        full_path = BASE_PATH / Path(rel_path)  # Ahora concatena BASE_PATH correctamente.
 
         if not full_path.exists():
+            print(f"[⚠️] Archivo no encontrado: {full_path}")
             continue
         try:
             with fitz.open(str(full_path)) as doc:
                 full_text = "\n".join([page.get_text("text") for page in doc])
                 texts.append(full_text)
-        except Exception:
-            continue
+        except Exception as e:
+            print(f"[ERROR] No se pudo abrir {full_path}: {e}")
     return texts
+
+
+
 
 def buscar_texto_relevante(pregunta):
     print("[DEBUG] Iniciando búsqueda de texto relevante con ChromaDB...")
@@ -251,6 +275,7 @@ if __name__ == "__main__":
             documentos_usados.update(documentos_entidades)
             documentos_usados.update(documentos_cypher)
             documentos_usados.update(fuentes_vectoriales)
+            # Extraer solo las rutas (ruta relativa a BASE_PATH)
             textos_finales = load_text_from_docs(documentos_usados)
             print(f"[DEBUG] Textos finales: {len(textos_finales)} textos")
 
@@ -279,7 +304,7 @@ if __name__ == "__main__":
         documentos_usados.update(documentos_entidades)
         documentos_usados.update(documentos_cypher)
         documentos_usados.update(fuentes_vectoriales)
-        textos_finales = load_text_from_docs(documentos_usados)
+        textos_finales = load_text_from_docs(list(documentos_usados))
         respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
 
         print("=== RESPUESTA SPACY ===")
@@ -298,5 +323,3 @@ if __name__ == "__main__":
         print("=== RESPUESTA COMBINADA ===")
         print(f"[Documentos usados: {[name for name, _ in documentos_usados]}]")
         print(respuesta_final_combinada)
-
-

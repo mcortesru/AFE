@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const fileInput = document.getElementById("file-upload");
         const file = fileInput.files[0];
     
-        if (!file && buttonId !== 'chatbot-general') {
+        if (!file && buttonId === 'chatbot') {
             alert("Por favor, selecciona un archivo antes de procesarlo.");
             return;
         }
@@ -38,18 +38,30 @@ document.addEventListener("DOMContentLoaded", function () {
         output.style.display = "block";
         output.textContent = "";
     
-        if (buttonId === 'chatbot' || buttonId === 'chatbot-general') {
+        if (buttonId === 'chatbot' || buttonId === 'chatbot-general' || buttonId === 'chatbot-final') {
             documentUploaded = true;
             document.getElementById("chat-box").innerHTML = "";
             toggleSections(true);
-            sessionStorage.setItem("chatMode", buttonId === 'chatbot' ? "individual" : "general");
+            if (buttonId === 'chatbot') {
+                sessionStorage.setItem("chatMode", "individual");
+            } else if (buttonId === 'chatbot-general') {
+                sessionStorage.setItem("chatMode", "general");
+            } else if (buttonId === 'chatbot-final') {
+                sessionStorage.setItem("chatMode", "final");
+            }
+
     
-            output.textContent = buttonId === 'chatbot'
-                ? 'Chatbot individual cargado correctamente. Ya puedes hacer preguntas.'
-                : 'Chatbot general activado. Escribe tu pregunta abajo.';
+            if (buttonId === 'chatbot') {
+                output.textContent = 'Chatbot individual cargado correctamente. Ya puedes hacer preguntas.';
+            } else if (buttonId === 'chatbot-general') {
+                output.textContent = 'Chatbot general activado. Escribe tu pregunta abajo.';
+            } else if (buttonId === 'chatbot-final') {
+                output.textContent = 'Chatbot final activado. Pregunta lo que quieras.';
+            }
+
     
-            // ✅ NO ejecutar el fetch si es chatbot-general
-            if (buttonId === 'chatbot-general') return;
+            // ✅ NO ejecutar el fetch si es chatbot-general o chatbot final
+            if (buttonId === 'chatbot-general' || buttonId === 'chatbot-final') return;
         } else {
             toggleSections(false);
             sessionStorage.removeItem("chatMode");
@@ -100,7 +112,15 @@ document.addEventListener("DOMContentLoaded", function () {
         chatBox.appendChild(userMessage);
         inputField.value = "";
 
-        const endpoint = mode === "general" ? "/chat-general" : "/chat";
+        let endpoint;
+        if (mode === "general") {
+            endpoint = "/chat-general";
+        } else if (mode === "final") {
+            endpoint = "/chat-final";
+        } else {
+            endpoint = "/chat";
+        }
+
 
         fetch(endpoint, {
             method: "POST",

@@ -31,8 +31,8 @@ if len(sys.argv) < 2:
     # path_al_archivo = input("No se ha proporcionado el path del archivo. Por favor, introduce el path del archivo: ")   
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-147.pdf" 
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-68-69.pdf"
-    # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-71.pdf"
-     path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/ACTAS/005-11-30-33.pdf"  # MUY LARGO
+     path_al_archivo = "/Users/administrador/AFE/AUPSA_ACE_JN_Correspondencia Presidencia/ACE_JN_62_001 a 62_004/AUPSA_ACE_JN_0062_003/AUPSA_ACE_JN_0062_003_26.pdf"
+    # path_al_archivo = "/Users/administrador/Desktop/PDFs/Documentos/ACTAS/005-11-30-33.pdf"  # MUY LARGO
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/ACTAS/004-07-165-168.pdf"
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-155.pdf"
     # path_al_archivo = "/Users/administrador/Desktop/PDFs/CARTAS/ACE_JAC_9A_07-154.pdf"

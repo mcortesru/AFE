@@ -152,7 +152,8 @@ def buscar_respuesta(pregunta):
     resultados = collection.query(query_embeddings=[vector_pregunta], n_results=3)
     respuesta = "\n".join(resultados["documents"][0]) if resultados["documents"] else "No se encontraron respuestas."
     
-    print("[INFO] Respuesta encontrada.")
+    print("[INFO] Respuesta encontrada:")
+    print(respuesta)
     return respuesta
 
 # **Generar respuesta con OpenAI si está habilitado**
@@ -164,7 +165,7 @@ def generar_respuesta(texto_relevante, pregunta):
             respuesta = client.chat.completions.create(
                 model="gpt-4o-mini", #gpt-3.5-turbo
                 messages=[
-                    {"role": "system", "content": "Responde preguntas basadas en el documento proporcionado."},
+                    {"role": "system", "content": "Responde preguntas basadas únicamente en el documento proporcionado."},
                     {"role": "user", "content": f"Documento relevante:\n{texto_relevante}\n\nPregunta: {pregunta}"}
                 ]
             )
@@ -183,7 +184,7 @@ def chatbot_inicializar(documento=None):
         documento = DEFAULT_DOC_PATH
 
     if procesar_documento(documento):
-        print("[INFO] Chatbot inicializado correctamente con {documento}.")
+        print(f"[INFO] Chatbot inicializado correctamente con {documento}.")
         return True
     else:
         print("[ERROR] No se pudo procesar el documento.")

@@ -134,6 +134,40 @@ def ejecutar_chatbot_general_con_pregunta(pregunta):
 
     return respuestas
 
+def ejecutar_chatbot_final_con_pregunta(pregunta):
+    """Ejecuta el script chat_final.py con una pregunta como argumento y devuelve todas las respuestas."""
+    print(f"Ejecutando chatbot final con pregunta: {pregunta}")
+
+    script_path = os.path.join(os.path.dirname(__file__), '.', 'chat_final.py')
+    result = subprocess.run(
+        [VENV_PYTHON, script_path, pregunta],
+        capture_output=True,
+        text=True
+    )
+
+    # Capturar y mostrar la salida estándar y los errores
+    if result.stdout:
+        print(f"[DEBUG] Salida de chat_final.py: {result.stdout}")
+    if result.stderr:
+        print(f"[ERROR] Error en chat_final.py: {result.stderr}")
+
+    if result.stderr:
+        print("Error al ejecutar el chatbot final:", result.stderr)
+
+    output = result.stdout
+
+    # Extraer cada bloque de respuesta
+    respuestas = {}
+    bloques = ["SPACY", "CYPHER", "CHROMA", "COMBINADA"]
+    for i, tag in enumerate(bloques):
+        inicio = output.find(f"=== RESPUESTA {tag} ===")
+        fin = output.find(f"=== RESPUESTA {bloques[i+1]} ===") if i + 1 < len(bloques) else len(output)
+        if inicio != -1:
+            respuestas[tag.lower()] = output[inicio + len(f"=== RESPUESTA {tag} ==="):fin].strip()
+
+    return respuestas
+
+
 
 @app.route('/')
 def index():
@@ -194,6 +228,19 @@ def process_file():
             html_respuesta += f"<h4 style='color:#4CAF50'>Respuesta {nombre.upper()}</h4><pre>{contenido}</pre><hr>"
 
         return jsonify({"message": html_respuesta})
+    
+    elif button_id == 'chatbot-final':
+        pregunta = request.form.get("question", "")
+        if not pregunta:
+            return jsonify({"error": "No se proporcionó ninguna pregunta"}), 400
+
+        respuestas = ejecutar_chatbot_final_con_pregunta(pregunta)
+        html_respuesta = ""
+        for nombre, contenido in respuestas.items():
+            html_respuesta += f"<h4 style='color:#2196F3'>Respuesta {nombre.upper()}</h4><pre>{contenido}</pre><hr>"
+
+        return jsonify({"message": html_respuesta})
+
 
     return jsonify({"message": message})
 
@@ -226,6 +273,22 @@ def chat_general_endpoint():
         respuesta_texto += f"{nombre.upper()}:\n{contenido}\n\n"
 
     return jsonify({"response": respuesta_texto.strip()})
+
+@app.route('/chat-final', methods=['POST'])
+def chat_final_endpoint():
+    data = request.json
+    pregunta = data.get("message", "").strip()
+
+    if not pregunta:
+        return jsonify({"error": "No se proporcionó ninguna pregunta."}), 400
+
+    respuestas = ejecutar_chatbot_final_con_pregunta(pregunta)
+    respuesta_texto = ""
+    for nombre, contenido in respuestas.items():
+        respuesta_texto += f"{nombre.upper()}:\n{contenido}\n\n"
+
+    return jsonify({"response": respuesta_texto.strip()})
+
 
 
 if __name__ == '__main__':
