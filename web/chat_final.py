@@ -9,6 +9,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 import chromadb
+import re
 import contextlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -68,6 +69,9 @@ def suppress_low_level_output():
             os.dup2(old_stderr_fd, 2)
 
 # --- Funciones ---
+def clean_name(text):
+    return re.sub(r"[^\w\sáéíóúüñÁÉÍÓÚÜÑ]", "", text)
+
 def extract_entities(pregunta):
     doc = nlp(pregunta)
     return [(ent.text, ent.label_) for ent in doc.ents if ent.label_ in ["PER", "LOC", "GPE", "ORG", "DATE"]]
@@ -86,7 +90,8 @@ def find_documents_related_to_entities(entities):
     with driver.session() as session:
         for name, label in entities:
             if label == "PER":
-                name_parts = name.split()
+                name_cleaned = re.sub(r"[^\w\sáéíóúüñÁÉÍÓÚÜÑ]", "", name)
+                name_parts = name_cleaned.split()
                 condiciones = " AND ".join([
                     f'(toLower(COALESCE(p.name, "")) CONTAINS toLower("{part}") OR ' +
                     f'toLower(COALESCE(p.surname1, "")) CONTAINS toLower("{part}") OR ' +
@@ -94,7 +99,7 @@ def find_documents_related_to_entities(entities):
                     for part in name_parts
                 ])
                 consulta = f"""
-                MATCH (d:Document)<-[:MENTIONED_IN]-(p:Person)
+                MATCH (p:Person)-[:MENTIONED_IN]->(d:Document)
                 WHERE {condiciones}
                 RETURN DISTINCT d.file_name AS doc_name, d.relative_path AS pdf_path
                 """
@@ -103,7 +108,7 @@ def find_documents_related_to_entities(entities):
                 if not neo4j_label:
                     continue
                 consulta = f"""
-                MATCH (d:Document)-[:MENTIONED_IN]->(e:{neo4j_label})
+                MATCH (d:Document)-[:LOCATED_AT]->(e:{neo4j_label})
                 WHERE toLower(e.name) CONTAINS toLower("{name}")
                 RETURN d.file_name AS doc_name, d.relative_path AS pdf_path
                 """
@@ -119,27 +124,72 @@ def find_documents_related_to_entities(entities):
 
 
 
+
 def generar_cypher(pregunta):
     system_prompt = f"""
 Eres un asistente experto en generar consultas Cypher para Neo4j.
 Tu única tarea es, dada una pregunta en lenguaje natural, generar **una única consulta Cypher** que recupere los documentos históricos más relevantes.
 
 ⚠️ IMPORTANTE:
-- Devuelve SOLO la consulta Cypher, sin explicaciones, sin encabezados ni formato Markdown.
-- La consulta debe devolver: d.file_name y d.relative_path.
-- Usa funciones como toLower(), CONTAINS, COALESCE() y date() para asegurar coincidencias robustas.
-- El grafo tiene nodos:
-  - Document con propiedades: file_name, title, summary, sheet_number, issue_date, relative_path
-  - Person con propiedades: name, surname1, surname2, person_type
-  - Location con propiedad name
-  - DocumentType con propiedad name
-  - Folder y Box
+- Devuelve **SOLO la consulta Cypher**, sin explicaciones, sin encabezados ni formato Markdown.
+- La consulta debe terminar siempre en:
+  RETURN d.file_name, d.relative_path
+- Nunca utilices más de una cláusula MATCH sin encadenarlas con WITH. Prefiere una única cláusula MATCH cuando sea posible.
+- Usa siempre las funciones toLower(), CONTAINS y COALESCE() para asegurar coincidencias robustas y evitar errores por valores nulos.
+- Si se busca por palabras clave (por ejemplo “crisis económica” o “junta nacional”), esas palabras deben buscarse tanto en el campo d.title como en d.summary.
+  Para ello, cada palabra clave debe generar una cláusula como:
+    (
+      toLower(COALESCE(d.title, '')) CONTAINS 'palabra' OR
+      toLower(COALESCE(d.summary, '')) CONTAINS 'palabra'
+    )
+  Y deben combinarse todas con AND si hay más de una.
+- Evita usar igualdad exacta (=) en nombres o lugares: utiliza CONTAINS.
+- Si necesitas acceder a propiedades de la relación MENTIONED_IN (como `category` o `role`), debes dar nombre a la relación en el MATCH: (p:Person)-[r:MENTIONED_IN]->(d:Document)
+- Los nombres de personas pueden estar divididos entre name, surname1 y surname2, y a veces mal segmentados. Para asegurar coincidencias:
+  → Si la pregunta incluye varias partes de un mismo nombre (por ejemplo: "Pilar Garaizabal Berasátegui"), combina todos los fragmentos en una sola cláusula `WHERE`, uniendo con `OR` las comparaciones sobre los campos name, surname1 y surname2.
+- Si la pregunta incluye personas o cargos, filtra usando:
+  MATCH (p:Person)-[r:MENTIONED_IN]->(d:Document)
+  WHERE (
+      toLower(COALESCE(p.name, '')) CONTAINS 'parte1' OR
+      toLower(COALESCE(p.surname1, '')) CONTAINS 'parte1' OR
+      toLower(COALESCE(p.surname2, '')) CONTAINS 'parte1' OR
+      toLower(COALESCE(p.name, '')) CONTAINS 'parte2' OR
+      toLower(COALESCE(p.surname1, '')) CONTAINS 'parte2' OR
+      toLower(COALESCE(p.surname2, '')) CONTAINS 'parte2' OR
+      ...
+  )
+  AND toLower(COALESCE(r.role, '')) CONTAINS 'rol'
 
-Relaciones:
-- (:Person)-[:MENTIONED_IN]->(:Document)
-- (:Document)-[:LOCATED_AT]->(:Location)
-- (:Document)-[:HAS_TYPE]->(:DocumentType)
-- (:Document)-[:IN_FOLDER]->(:Folder)-[:BELONGS_TO]->(:Box)
+ESTRUCTURA DEL GRAFO:
+
+NODOS:
+- (Document) {{ file_name, title, summary, sheet_number, issue_date, relative_path }}
+- (Person) {{ name, surname1, surname2, person_type }}  # person_type = 'pe' o 'ej'
+- (Location) {{ name }}
+- (DocumentType) {{ name }}
+- (Folder) {{ number }}
+- (Box) {{ number }}
+
+RELACIONES:
+- (Person)-[:MENTIONED_IN {{ category, role }}]->(Document)
+- (Document)-[:LOCATED_AT {{ category }}]->(Location)
+- (Document)-[:HAS_TYPE]->(DocumentType)
+- (Document)-[:IN_FOLDER]->(Folder)-[:BELONGS_TO]->(Box)
+
+CATEGORÍAS COMUNES:
+- MENTIONED_IN.category: 'au' (autor), 'de' (destinatario), 'ot' (otro)
+- MENTIONED_IN.role: texto libre (ej: 'presidente', 'secretario')
+- LOCATED_AT.category: 'em' (emisión), 're' (recepción), 'ot' (otro)
+
+CREACIÓN DEL GRAFO:
+
+- (box:Box {{number}}) y (folder:Folder {{number}}) conectados con [:BELONGS_TO]
+- (d:Document {{file_name}}) tiene propiedades title, summary, sheet_number, issue_date, relative_path
+- (d)-[:HAS_TYPE]->(dt:DocumentType {{name}})
+- (d)-[:IN_FOLDER]->(folder)
+- (p:Person {{name, surname1, surname2, person_type}}) relacionado con d vía [:MENTIONED_IN {{category, role}}]
+- (l:Location {{name}}) relacionado con d vía [:LOCATED_AT {{category}}]
+
 
 Pregunta:
 {pregunta}
