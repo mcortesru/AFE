@@ -27,7 +27,9 @@ document.addEventListener("DOMContentLoaded", function () {
             formData.append('file', file);
         }
     
-        const threshold = document.getElementById("ner-threshold").value || "0.99";
+        const thresholdInput = document.getElementById("ner-threshold");
+        const threshold = thresholdInput ? thresholdInput.value || "0.99" : "0.99";
+
         console.log("Nivel de confianza: " + threshold);
 
         if (buttonId === 'tokens') {
@@ -70,6 +72,8 @@ document.addEventListener("DOMContentLoaded", function () {
             else if (buttonId === 'clasificacion') output.textContent = 'Clasificando texto...';
             else if (buttonId === 'tokens') output.textContent = 'Obteniendo NERs del texto con una confianza de ' + threshold + '...';
             else if (buttonId === 'palabras') output.textContent = 'Obteniendo palabras clave del texto...';
+            else if (buttonId === 'entidades') output.textContent = 'Extrayendo entidades nombradas del texto...';
+
         }
     
         // 🔄 Solo se ejecuta fetch si no es chatbot-general
@@ -82,7 +86,12 @@ document.addEventListener("DOMContentLoaded", function () {
             return response.json();
         })
         .then(data => {
-            if (buttonId !== 'chatbot') {
+            if (buttonId === 'entidades') {
+                output.textContent = 'Procesando entidades...';
+                setTimeout(() => {
+                    output.innerHTML = data.message.replace(/\\n/g, '<br>');
+                }, 7000);
+            } if (buttonId !== 'chatbot') {
                 output.innerHTML = data.message.replace(/\\n/g, '<br>');
             }
         })

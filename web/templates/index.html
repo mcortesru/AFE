@@ -14,19 +14,20 @@
         </div>
         <div class="buttons-section">
             <button onclick="processFile('resumen')">Resume el documento</button>
-            <button onclick="processFile('clasificacion')">Clasifica el documento</button>
+            <!-- <button onclick="processFile('clasificacion')">Clasifica el documento</button> -->
             <button onclick="processFile('palabras')">Obten las palabras clave</button>
+            <button onclick="processFile('entidades')">Obtener entidades del documento</button>
             <button onclick="processFile('chatbot')">Chatbot individual</button>
-            <button onclick="processFile('chatbot-general')">Chatbot general</button>
+            <!-- <button onclick="processFile('chatbot-general')">Chatbot general</button> -->
             <button onclick="processFile('chatbot-final')">Chatbot final</button>
 
-            <div class="ner-wrapper">
+            <!-- <div class="ner-wrapper">
                 <div class="ner-controls">
                     <button type="button" onclick="processFile('tokens', event)">Obten los NERs</button>
                     <input type="number" id="ner-threshold" min="0" max="0.99" step="0.01" value="0.85">
                 </div>
                 <span class="ner-label">Umbral de confianza (0–0.99)</span>
-            </div>
+            </div> -->
         </div>
         <div class="output-section">
             <p id="output">Aquí aparecerá el texto procesado.</p>

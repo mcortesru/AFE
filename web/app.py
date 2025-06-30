@@ -7,6 +7,7 @@ import logging
 from chromadb_open import chatbot_inicializar, chat
 import sys
 from dotenv import load_dotenv
+import json
 
 logging.basicConfig(level=logging.DEBUG)
 print("Iniciando Flask...")
@@ -25,10 +26,70 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 TMP_DIR = os.path.join(os.path.dirname(__file__), "..", ".tmp")
 os.makedirs(TMP_DIR, exist_ok=True)
 
+METADATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'dbV0.json'))
+
 if sys.platform == "win32":
     VENV_PYTHON = os.path.join(os.path.dirname(__file__), '..', 'mi_entorno', 'Scripts', 'python.exe')
 else:
     VENV_PYTHON = os.path.join(os.path.dirname(__file__), '..', 'myenv', 'bin', 'python')
+
+def obtener_entidades(file_name):
+    try:
+        with open(METADATA_PATH, "r", encoding="utf-8") as f:
+            documentos = json.load(f)
+    except Exception as e:
+        return f"❌ Error al leer metadatos: {str(e)}"
+
+    doc = next((d for d in documentos if d["file_name"] == file_name), None)
+    if not doc:
+        return "❌ No se encontraron metadatos para este archivo."
+
+    PERSON_TYPE_MAP = {
+        'pe': 'Persona natural',
+        'ej': 'Entidad jurídica'
+    }
+
+    PERSON_CATEGORY_MAP = {
+        'au': 'Autor',
+        'de': 'Destinatario',
+        'ot': 'Otro'
+    }
+
+    LOCATION_CATEGORY_MAP = {
+        'em': 'Emisión',
+        're': 'Recepción',
+        'ot': 'Otro'
+    }
+
+    html = f"<h3>📄 <b>{doc['title']}</b></h3>"
+    html += f"<p><b>Fecha:</b> {doc['issue_date']}<br>"
+    html += f"<b>Tipo de documento:</b> {doc['document_type']}<br>"
+    html += f"<b>Resumen:</b> {doc['summary']}</p>"
+
+    if doc.get("people"):
+        html += "<h4>👥 Personas:</h4><ul>"
+        for p in doc["people"]:
+            nombre_completo = " ".join(filter(None, [p.get("name"), p.get("surname1"), p.get("surname2")]))
+            tipo = PERSON_TYPE_MAP.get(p.get("person_type"), "Desconocido")
+            categoria = PERSON_CATEGORY_MAP.get(p.get("category"), "Desconocido")
+            extras = []
+            if p.get("role"): extras.append(f"Rol: {p['role']}")
+            if categoria: extras.append(f"Categoría: {categoria}")
+            if tipo: extras.append(f"Tipo: {tipo}")
+            html += f"<li>{nombre_completo} {' – ' + ', '.join(extras) if extras else ''}</li>"
+        html += "</ul>"
+
+    if doc.get("locations"):
+        html += "<h4>📍 Lugares:</h4><ul>"
+        for l in doc["locations"]:
+            categoria_loc = LOCATION_CATEGORY_MAP.get(l.get("category"), "Desconocido")
+            html += f"<li>{l['name']} (Categoría: {categoria_loc})</li>"
+        html += "</ul>"
+
+    html += f"<p><b>Ruta relativa:</b> {doc['relative_path']}<br><b>Caja:</b> {doc['box']} – Carpeta: {doc['folder']}</p>"
+
+    return html
+
 
 def resumen(temp_path):
     """Ejecuta el script de resumen en el entorno virtual."""
@@ -210,6 +271,10 @@ def process_file():
         message = tokens(temp_path, threshold)
     elif button_id == 'palabras':
         message = palabras(temp_path)
+    elif button_id == 'entidades':
+        if not filename:
+            return jsonify({"error": "No se recibió ningún archivo"}), 400
+        message = obtener_entidades(filename)
     elif button_id == 'chatbot':
         if chatbot_inicializar(temp_path):
             session['current_document'] = temp_path
