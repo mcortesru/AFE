@@ -197,30 +197,41 @@ Pregunta:
 Cypher:
     """
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Pregunta: {pregunta}"}
-        ]
-    )
-    consulta = response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Pregunta: {pregunta}"}
+            ]
+        )
+        consulta = response.choices[0].message.content.strip()
 
-    # 🧼 Extraer solo la consulta que comience con MATCH o similar
-    consulta = response.choices[0].message.content.strip()
+        # 🧼 Extraer solo la consulta que comience con MATCH o similar
+        consulta = response.choices[0].message.content.strip()
 
-    # 🧼 Extraer solo la consulta que comience con MATCH o similar
-    import re
-    match = re.search(r"\b(MATCH|WITH|CALL)\b[\s\S]+", consulta)
-    consulta = match.group(0).strip() if match else ""
+        # 🧼 Extraer solo la consulta que comience con MATCH o similar
+        import re
+        match = re.search(r"\b(MATCH|WITH|CALL)\b[\s\S]+", consulta)
+        consulta = match.group(0).strip() if match else ""
+        return consulta
+    except Exception as e:
+        print(f"[⚠️] Error generando consulta Cypher: {e}")
+        return ""
 
-    return consulta
 
 def run_cypher(cypher):
-    with driver.session() as session:
-        result = session.run(cypher)
-        # Usa los nombres exactos devueltos por Cypher y no añadas BASE_PATH aquí.
-        return [(record["d.file_name"], record["d.relative_path"]) for record in result]
+    if not cypher.strip():
+        print("[⚠️] Consulta Cypher vacía, se omite la ejecución")
+        return []
+    try:
+        with driver.session() as session:
+            result = session.run(cypher)
+            return [(record["d.file_name"], record["d.relative_path"]) for record in result]
+    except Exception as e:
+        print(f"[⚠️] Error al ejecutar Cypher: {e}")
+        return []
+
 
 
 

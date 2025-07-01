@@ -1,3 +1,22 @@
+const locationCategoryLabels = {
+    em: "Emisión",
+    re: "Recepción",
+    ot: "Otro"
+};
+
+const personTypeLabels = {
+    pe: "Persona natural",
+    ej: "Entidad jurídica"
+};
+
+const personCategoryLabels = {
+    au: "Autor",
+    de: "Destinatario",
+    ot: "Otro"
+};
+
+
+
 document.addEventListener("DOMContentLoaded", function () {
     let documentUploaded = false;
 
@@ -15,6 +34,10 @@ document.addEventListener("DOMContentLoaded", function () {
     window.processFile = function (buttonId) {
         const fileInput = document.getElementById("file-upload");
         const file = fileInput.files[0];
+
+        // Oculta la vista de información completa si está activa
+        document.getElementById("informacion-completa").style.display = "none";
+
     
         if (!file && buttonId === 'chatbot') {
             alert("Por favor, selecciona un archivo antes de procesarlo.");
@@ -73,7 +96,6 @@ document.addEventListener("DOMContentLoaded", function () {
             else if (buttonId === 'tokens') output.textContent = 'Obteniendo NERs del texto con una confianza de ' + threshold + '...';
             else if (buttonId === 'palabras') output.textContent = 'Obteniendo palabras clave del texto...';
             else if (buttonId === 'entidades') output.textContent = 'Extrayendo entidades nombradas del texto...';
-
         }
     
         // 🔄 Solo se ejecuta fetch si no es chatbot-general
@@ -86,12 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return response.json();
         })
         .then(data => {
-            if (buttonId === 'entidades') {
-                output.textContent = 'Procesando entidades...';
-                setTimeout(() => {
-                    output.innerHTML = data.message.replace(/\\n/g, '<br>');
-                }, 7000);
-            } if (buttonId !== 'chatbot') {
+            if (buttonId !== 'chatbot') {
                 output.innerHTML = data.message.replace(/\\n/g, '<br>');
             }
         })
@@ -152,6 +169,117 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch(error => {
             console.error("Error en la solicitud:", error);
+        });
+    };
+
+
+    window.verTodaLaInformacion = function () {
+    fetch('/ver-informacion-completa')
+        .then(response => {
+            if (!response.ok) throw new Error("Error al obtener la información");
+            return response.json();
+        })
+        .then(data => {
+            const container = document.getElementById("accordion-container");
+            container.innerHTML = "";
+
+            data.documentos.forEach((doc, i) => {
+                const section = document.createElement("div");
+                section.classList.add("accordion-item");
+
+                const header = document.createElement("button");
+                header.classList.add("accordion-toggle");
+                header.textContent = `${doc.file_name} – ${doc.title}`;
+
+                const content = document.createElement("div");
+                content.classList.add("accordion-content");
+                content.style.display = "none";
+                header.onclick = () => {
+                    content.style.display = content.style.display === "none" ? "block" : "none";
+                };
+
+                // === PERSONAS ===
+                let personasHTML = "";
+
+                // Autores (solo personas físicas)
+                const autores = doc.people.filter(p => p.category === "au" && p.person_type === "pe");
+                if (autores.length) {
+                    personasHTML += `<p><strong>Autores:</strong></p><ul>`;
+                    personasHTML += autores.map(p => {
+                        const nombre = [p.name, p.surname1, p.surname2].filter(Boolean).join(" ") || "(sin nombre)";
+                        const rol = p.role ? ` – ${p.role}` : "";
+                        return `<li>${nombre}${rol}</li>`;
+                    }).join("");
+                    personasHTML += `</ul>`;
+                }
+
+                // Destinatarios (solo personas físicas)
+                const destinatarios = doc.people.filter(p => p.category === "de" && p.person_type === "pe");
+                if (destinatarios.length) {
+                    personasHTML += `<p><strong>Destinatarios:</strong></p><ul>`;
+                    personasHTML += destinatarios.map(p => {
+                        const nombre = [p.name, p.surname1, p.surname2].filter(Boolean).join(" ") || "(sin nombre)";
+                        const rol = p.role ? ` – ${p.role}` : "";
+                        return `<li>${nombre}${rol}</li>`;
+                    }).join("");
+                    personasHTML += `</ul>`;
+                }
+
+                // Otras personas físicas
+                const otrasPersonas = doc.people.filter(p => p.category === "ot" && p.person_type === "pe");
+                if (otrasPersonas.length) {
+                    personasHTML += `<p><strong>Resto de personas:</strong></p><ul>`;
+                    personasHTML += otrasPersonas.map(p => {
+                        const nombre = [p.name, p.surname1, p.surname2].filter(Boolean).join(" ") || "(sin nombre)";
+                        const rol = p.role ? ` – ${p.role}` : "";
+                        return `<li>${nombre}${rol}</li>`;
+                    }).join("");
+                    personasHTML += `</ul>`;
+                }
+
+                // Organizaciones (entidades jurídicas)
+                const organizaciones = doc.people.filter(p => p.person_type === "ej");
+                if (organizaciones.length) {
+                    personasHTML += `<p><strong>Organizaciones:</strong></p><ul>`;
+                    personasHTML += organizaciones.map(p => {
+                        const nombre = p.name || "(sin nombre)";
+                        const rol = p.role ? ` – ${p.role}` : "";
+                        return `<li>${nombre}${rol}</li>`;
+                    }).join("");
+                    personasHTML += `</ul>`;
+                }
+
+                // === LUGARES ===
+                const lugaresHTML = `
+                    <p><strong>Lugares:</strong></p>
+                    <ul>
+                        ${doc.locations.map(l => {
+                            const label = locationCategoryLabels[l.category] || l.category;
+                            return `<li>${l.name} (${label})</li>`;
+                        }).join("")}
+                    </ul>`;
+
+                // === CONTENIDO FINAL ===
+                content.innerHTML = `
+                    <p><strong>Resumen:</strong> ${doc.summary}</p>
+                    <p><strong>Tipo:</strong> ${doc.document_type}</p>
+                    <p><strong>Caja:</strong> ${doc.box} | <strong>Carpeta:</strong> ${doc.folder}</p>
+                    ${personasHTML}
+                    ${lugaresHTML}
+                `;
+
+                section.appendChild(header);
+                section.appendChild(content);
+                container.appendChild(section);
+            });
+
+            document.getElementById("informacion-completa").style.display = "block";
+            document.getElementById("output").style.display = "none";
+            document.getElementById("chat-section").style.display = "none";
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("No se pudo cargar la información");
         });
     };
 });

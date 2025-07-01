@@ -355,6 +355,16 @@ def chat_final_endpoint():
     return jsonify({"response": respuesta_texto.strip()})
 
 
+@app.route('/ver-informacion-completa')
+def ver_informacion_completa():
+    try:
+        with open(METADATA_PATH, "r", encoding="utf-8") as f:
+            documentos = json.load(f)
+        return jsonify({"documentos": documentos})
+    except Exception as e:
+        return jsonify({"error": f"No se pudo cargar el archivo: {str(e)}"}), 500
+
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=flask_port)
