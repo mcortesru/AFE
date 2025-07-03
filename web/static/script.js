@@ -161,16 +161,36 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             let formattedResponse = data.response;
+            console.log("RESPUESTA OBTENIDA:")
+            console.log(formattedResponse)
+            
+            //FORMATEO DE LA RESPUESTA
+            formattedResponse = formattedResponse.replace(/\[Documentos usados:\s*\[[^\]]*\]\]/g, match => {
+                return `<span class="docs-used" style="display:none;color:#555">${match}</span>`;
+            });
+
             formattedResponse = formattedResponse
-                .replace(/===\s*(.+?)\s*===/g, "<b>$1</b>")  // títulos en negrita
-                .replace(/\n/g, "<br>")                     // reemplazar saltos de línea por <br>
-                .replace(/<\/b>/g, "</b><br><br>");         // después de cada título, dos <br> claros
+                .replace(/===\s*(.+?)\s*===/g, "<b>$1</b>")
+                .replace(/\n/g, "<br>")
+                .replace(/<\/b>/g, "</b>");
 
             const botMessage = document.createElement("div");
             botMessage.className = "message bot-message";
             botMessage.innerHTML = formattedResponse
 
+            const toggleButton = document.createElement("button");
+            toggleButton.textContent = "Mostrar/ocultar documentos usados";
+            toggleButton.style.display = "block";
+            toggleButton.style.marginTop = "10px";
+            toggleButton.onclick = () => {
+                const docsUsedElements = botMessage.querySelectorAll(".docs-used");
+                docsUsedElements.forEach(elem => {
+                    elem.style.display = elem.style.display === "none" ? "inline" : "none";
+                });
+            };
+
             chatBox.appendChild(botMessage);
+            chatBox.appendChild(toggleButton);
             chatBox.scrollTop = chatBox.scrollHeight;
         })
         .catch(error => {

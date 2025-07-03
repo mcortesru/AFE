@@ -369,18 +369,18 @@ if __name__ == "__main__":
         respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
 
         print("=== Respuesta basada en grafos por detección de entidades en la pregunta ===")
-        # print(f"[Documentos usados: {[name for name, _ in documentos_entidades]}]")
+        print(f"[Documentos usados: {[name for name, _ in documentos_entidades]}]")
         print(respuesta_spacy)
 
         print("=== Respuesta basada en grafos por generación de consultas personalizadas ===")
-        # print(f"[Documentos usados: {[name for name, _ in documentos_cypher]}]")
+        print(f"[Documentos usados: {[name for name, _ in documentos_cypher]}]")
         # print(f"[Consulta Cypher usada: {cypher}]")
         print(respuesta_cypher)
 
         print("=== Respuesta basada en búsqueda vectorial ===")
-        # print(f"[Documentos usados: {[name for name, _ in fuentes_vectoriales]}]")
+        print(f"[Documentos usados: {[name for name, _ in fuentes_vectoriales]}]")
         print(respuesta_vectorial)
 
         print("=== Respuesta basada en la estrategia combinada ===")
-        # print(f"[Documentos usados: {[name for name, _ in documentos_usados]}]")
+        print(f"[Documentos usados: {[name for name, _ in documentos_usados]}]")
         print(respuesta_final_combinada)
