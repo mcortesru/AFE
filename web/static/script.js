@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const userMessage = document.createElement("div");
         userMessage.className = "message user-message";
-        userMessage.innerText = "Tú: " + message;
+        userMessage.innerText = message;
         chatBox.appendChild(userMessage);
         inputField.value = "";
 
@@ -160,9 +160,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            let formattedResponse = data.response;
+            formattedResponse = formattedResponse
+                .replace(/===\s*(.+?)\s*===/g, "<b>$1</b>")  // títulos en negrita
+                .replace(/\n/g, "<br>")                     // reemplazar saltos de línea por <br>
+                .replace(/<\/b>/g, "</b><br><br>");         // después de cada título, dos <br> claros
+
             const botMessage = document.createElement("div");
             botMessage.className = "message bot-message";
-            botMessage.innerText = mode === "general" ? data.response : "Bot: " + data.response;
+            botMessage.innerHTML = formattedResponse
 
             chatBox.appendChild(botMessage);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -263,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 content.innerHTML = `
                     <p><strong>Resumen:</strong> ${doc.summary}</p>
                     <p><strong>Tipo:</strong> ${doc.document_type}</p>
-                    <p><strong>Caja:</strong> ${doc.box} | <strong>Carpeta:</strong> ${doc.folder}</p>
+                    <p><strong>Localización:</strong> Caja: ${doc.box} | Carpeta: ${doc.folder}</p>
                     ${personasHTML}
                     ${lugaresHTML}
                 `;

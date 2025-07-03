@@ -196,7 +196,6 @@ def ejecutar_chatbot_general_con_pregunta(pregunta):
     return respuestas
 
 def ejecutar_chatbot_final_con_pregunta(pregunta):
-    """Ejecuta el script chat_final.py con una pregunta como argumento y devuelve todas las respuestas."""
     print(f"Ejecutando chatbot final con pregunta: {pregunta}")
 
     script_path = os.path.join(os.path.dirname(__file__), '.', 'chat_final.py')
@@ -206,27 +205,32 @@ def ejecutar_chatbot_final_con_pregunta(pregunta):
         text=True
     )
 
-    # Capturar y mostrar la salida estándar y los errores
     if result.stdout:
         print(f"[DEBUG] Salida de chat_final.py: {result.stdout}")
     if result.stderr:
         print(f"[ERROR] Error en chat_final.py: {result.stderr}")
 
-    if result.stderr:
-        print("Error al ejecutar el chatbot final:", result.stderr)
-
     output = result.stdout
 
-    # Extraer cada bloque de respuesta
+    bloques = [
+        ("spacy", "=== Respuesta basada en grafos por detección de entidades en la pregunta ==="),
+        ("cypher", "=== Respuesta basada en grafos por generación de consultas personalizadas ==="),
+        ("chroma", "=== Respuesta basada en búsqueda vectorial ==="),
+        ("combinada", "=== Respuesta basada en la estrategia combinada ==="),
+    ]
+
     respuestas = {}
-    bloques = ["SPACY", "CYPHER", "CHROMA", "COMBINADA"]
-    for i, tag in enumerate(bloques):
-        inicio = output.find(f"=== RESPUESTA {tag} ===")
-        fin = output.find(f"=== RESPUESTA {bloques[i+1]} ===") if i + 1 < len(bloques) else len(output)
+    for i, (clave, tag) in enumerate(bloques):
+        inicio = output.find(tag)
+        fin = output.find(bloques[i + 1][1]) if i + 1 < len(bloques) else len(output)
         if inicio != -1:
-            respuestas[tag.lower()] = output[inicio + len(f"=== RESPUESTA {tag} ==="):fin].strip()
+            contenido = output[inicio + len(tag):fin].strip()
+            respuestas[clave] = contenido
+        else:
+            respuestas[clave] = "⚠️ No se ha generado respuesta."
 
     return respuestas
+
 
 
 
@@ -348,11 +352,21 @@ def chat_final_endpoint():
         return jsonify({"error": "No se proporcionó ninguna pregunta."}), 400
 
     respuestas = ejecutar_chatbot_final_con_pregunta(pregunta)
+
+    etiquetas = {
+        "spacy": "=== Respuesta basada en grafos por detección de entidades en la pregunta ===",
+        "cypher": "=== Respuesta basada en grafos por generación de consultas personalizadas ===",
+        "chroma": "=== Respuesta basada en búsqueda vectorial ===",
+        "combinada": "=== Respuesta basada en la estrategia combinada ==="
+    }
+
     respuesta_texto = ""
     for nombre, contenido in respuestas.items():
-        respuesta_texto += f"{nombre.upper()}:\n{contenido}\n\n"
+        etiqueta = etiquetas.get(nombre, f"=== {nombre.upper()} ===")
+        respuesta_texto += f"{etiqueta}\n{contenido or '⚠️ No se ha generado respuesta.'}\n\n"
 
     return jsonify({"response": respuesta_texto.strip()})
+
 
 
 @app.route('/ver-informacion-completa')

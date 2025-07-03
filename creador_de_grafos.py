@@ -13,7 +13,6 @@ NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
-
 BASE_DIR = Path("AUPSA_ACE_JN_Correspondencia Presidencia")
 
 
@@ -29,11 +28,11 @@ def create_nodes_and_relationships(json_path):
             pdf_path = details.get("pdf_path", "")
             full_path = BASE_DIR / Path(pdf_path)
 
-            # ❌ Validar que el archivo PDF exista antes de continuar
+            # Validar que el archivo exista
             if not full_path.exists():
                 raise FileNotFoundError(f"❌ No se encontró el archivo PDF: {full_path}")
 
-            # Crear nodo del documento con metadatos
+            # Crear nodo del documento
             session.run(
                 """
                 MERGE (d:Document {name: $pdf})
@@ -48,14 +47,22 @@ def create_nodes_and_relationships(json_path):
             )
 
             # Crear entidades relacionadas
-            for category, label in [
-                ("dates", "Date"),
-                ("people", "Person"),
-                ("locations", "Location"),
-                ("organizations", "Organization")
-            ]:
-                for item in details.get(category, []):
-                    if not item.strip():
+            label_map = {
+                "dates": "Date",
+                "people": "Person",
+                "locations": "Location",
+                "organizations": "Organization"
+            }
+
+            for category in details:
+                if category not in label_map:
+                    print(f"⚠️ Categoría no reconocida: {category}")
+                    continue
+
+                label = label_map[category]
+
+                for item in details[category]:
+                    if not isinstance(item, str) or not item.strip():
                         continue
                     session.run(
                         f"""
@@ -64,7 +71,7 @@ def create_nodes_and_relationships(json_path):
                         MERGE (d)-[:MENTIONS]->(n)
                         """,
                         pdf=pdf,
-                        item=item
+                        item=item.strip()
                     )
 
 
@@ -72,7 +79,7 @@ def create_nodes_and_relationships(json_path):
 # ▶️ Ejecutar
 # ==========================
 def main():
-    json_path = "jsons/AUPSA_ACE_JN_0062_001.json"  # Ajusta la ruta según el archivo que tengas
+    json_path = "jsons/AUPSA_ACE_JN_0062_001.json"
     create_nodes_and_relationships(json_path)
     print("✅ Datos cargados en Neo4j correctamente.")
 
