@@ -27,16 +27,26 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 nlp = spacy.load("es_core_news_md")
 
 # Neo4j
-NEO4J_URI = os.getenv("NEO4J_URI") or "bolt://localhost:7690"
-NEO4J_USER = os.getenv("NEO4J_USER") or "neo4j"
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+# Neo4j (local o remoto según .env)
+mode = os.getenv("NEO4J_MODE", "local")
+
+if mode == "remote":
+    NEO4J_URI = os.getenv("NEO4J_URI_REMOTE")
+    NEO4J_USER = os.getenv("NEO4J_USER_REMOTE", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD_REMOTE")
+else:
+    NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
+    NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+
 
 # Probar conexión con Neo4j
 try:
     with driver.session() as session:
         session.run("RETURN 1")
-    print("[OK] Conexión con Neo4j establecida")
+    print(f"[INFO] Conectando a Neo4j en modo: {mode} → {NEO4J_URI}")
 except Exception as e:
     print(f"[ERROR] No se pudo conectar a Neo4j: {e}")
     sys.exit(1)

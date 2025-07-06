@@ -6,14 +6,26 @@ from pathlib import Path
 from datetime import datetime
 
 # ==========================
-# 🔧 Conexión a Neo4j
+# 🔧 Conexión a Neo4j (local o AuraDB)
 # ==========================
 load_dotenv()
-NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7690")
-NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+mode = os.getenv("NEO4J_MODE", "local")
+
+if mode == "remote":
+    NEO4J_URI = os.getenv("NEO4J_URI_REMOTE")
+    NEO4J_USER = os.getenv("NEO4J_USER_REMOTE", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD_REMOTE")
+else:
+    NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7690")
+    NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
 
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+
+# Verificar conexión
+with driver.session() as session:
+    result = session.run("RETURN '✅ Conectado correctamente a Neo4j' AS mensaje")
+    print(result.single()["mensaje"])
 
 # ==========================
 # 📂 Cargar JSON
@@ -29,28 +41,22 @@ def safe_date(date_str):
     try:
         return datetime.strptime(date_str, "%Y-%m-%d").date().isoformat()
     except Exception:
-        # Puedes guardar un log aquí si quieres:
-        # with open("fechas_invalidas.log", "a") as logf:
-        #     logf.write(f"Fecha inválida: {date_str}\n")
         return "1900-01-01"
 
 # ==========================
 # 🧠 Función de importación
 # ==========================
 def crear_grafo(tx, doc):
-    # Crear Box y Folder y vincularlos
     tx.run("""
         MERGE (box:Box {number: $box})
         MERGE (folder:Folder {number: $folder})
         MERGE (folder)-[:BELONGS_TO]->(box)
     """, box=doc["box"], folder=doc["folder"])
 
-    # Crear DocumentType
     tx.run("""
         MERGE (dt:DocumentType {name: $doc_type})
     """, doc_type=doc["document_type"])
 
-    # Crear Documento y vincular con Folder y DocumentType
     tx.run("""
         MATCH (folder:Folder {number: $folder})
         MATCH (dt:DocumentType {name: $doc_type})
@@ -73,12 +79,10 @@ def crear_grafo(tx, doc):
         doc_type=doc["document_type"]
     )
 
-    # Crear y vincular personas
     for person in doc.get("people", []):
         name = person.get("name")
         if not name:
-            continue  # ignorar sin nombre
-
+            continue
         tx.run("""
             MERGE (p:Person {name: $name, person_type: $person_type})
             SET p.surname1 = $surname1,
@@ -99,12 +103,10 @@ def crear_grafo(tx, doc):
             file_name=doc["file_name"]
         )
 
-    # Crear y vincular localizaciones
     for loc in doc.get("locations", []):
         name = loc.get("name")
         if not name:
             continue
-
         tx.run("""
             MERGE (l:Location {name: $name})
             WITH l
@@ -117,11 +119,13 @@ def crear_grafo(tx, doc):
         )
 
 # ==========================
-# ▶️ Ejecutar
+# ▶️ Ejecutar importación
 # ==========================
 with driver.session() as session:
-    session.run("MATCH (n) DETACH DELETE n")
-    print("[INFO] Base de datos limpiada.")
+    confirm = input(f"\n⚠️ Estás en modo '{mode}'. ¿Quieres borrar todos los datos existentes? (s/n): ").strip().lower()
+    if confirm == "s":
+        session.run("MATCH (n) DETACH DELETE n")
+        print("[INFO] Base de datos limpiada.")
 
     for i, doc in enumerate(documentos):
         try:

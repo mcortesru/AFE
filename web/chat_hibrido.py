@@ -24,11 +24,22 @@ model = SentenceTransformer("all-MiniLM-L6-v2")
 # spaCy
 nlp = spacy.load("es_core_news_md")
 
-# Neo4j
-NEO4J_URI = os.getenv("NEO4J_URI") or "bolt://localhost:7690"
-NEO4J_USER = os.getenv("NEO4J_USER") or "neo4j"
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+# ==========================
+# 🔌 Conexión a Neo4j (local o AuraDB)
+# ==========================
+NEO4J_MODE = os.getenv("NEO4J_MODE", "local")
+
+if NEO4J_MODE == "remote":
+    NEO4J_URI = os.getenv("NEO4J_URI_REMOTE", "neo4j+s://<TU-ID>.databases.neo4j.io")
+    NEO4J_USER = os.getenv("NEO4J_USER_REMOTE", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD_REMOTE")
+else:
+    NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7690")
+    NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+    NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD")
+
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
+
 
 # Probar conexión con Neo4j
 try:
