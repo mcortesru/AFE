@@ -46,7 +46,7 @@ driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
 try:
     with driver.session() as session:
         session.run("RETURN 1")
-    print(f"[INFO] Conectando a Neo4j en modo: {mode} → {NEO4J_URI}")
+    print(f"[INFO] Conectando a Neo4j en modo: {mode} -> {NEO4J_URI}")
 except Exception as e:
     print(f"[ERROR] No se pudo conectar a Neo4j: {e}")
     sys.exit(1)
@@ -128,7 +128,7 @@ def find_documents_related_to_entities(entities):
                 for record in result:
                     docs.add((record["doc_name"], record["pdf_path"]))
             except Exception as e:
-                print(f"[⚠️] Error ejecutando consulta Cypher para '{name}': {e}")
+                print(f"Error ejecutando consulta Cypher para '{name}': {e}")
     return list(docs)
 
 
@@ -140,7 +140,7 @@ def generar_cypher(pregunta):
 Eres un asistente experto en generar consultas Cypher para Neo4j.
 Tu única tarea es, dada una pregunta en lenguaje natural, generar **una única consulta Cypher** que recupere los documentos históricos más relevantes.
 
-⚠️ IMPORTANTE:
+IMPORTANTE:
 - Devuelve **SOLO la consulta Cypher**, sin explicaciones, sin encabezados ni formato Markdown.
 - La consulta debe terminar siempre en:
   RETURN d.file_name, d.relative_path
@@ -226,20 +226,20 @@ Cypher:
         consulta = match.group(0).strip() if match else ""
         return consulta
     except Exception as e:
-        print(f"[⚠️] Error generando consulta Cypher: {e}")
+        print(f"Error generando consulta Cypher: {e}")
         return ""
 
 
 def run_cypher(cypher):
     if not cypher.strip():
-        print("[⚠️] Consulta Cypher vacía, se omite la ejecución")
+        print("Consulta Cypher vacía, se omite la ejecución")
         return []
     try:
         with driver.session() as session:
             result = session.run(cypher)
             return [(record["d.file_name"], record["d.relative_path"]) for record in result]
     except Exception as e:
-        print(f"[⚠️] Error al ejecutar Cypher: {e}")
+        print(f"Error al ejecutar Cypher: {e}")
         return []
 
 
@@ -251,7 +251,7 @@ def load_text_from_docs(docs_info):
         full_path = BASE_PATH / Path(rel_path)  # Ahora concatena BASE_PATH correctamente.
 
         if not full_path.exists():
-            print(f"[⚠️] Archivo no encontrado: {full_path}")
+            print(f"Archivo no encontrado: {full_path}")
             continue
         try:
             with fitz.open(str(full_path)) as doc:
@@ -321,7 +321,7 @@ if __name__ == "__main__":
             textos_spacy = load_text_from_docs(documentos_entidades)
             print(f"[DEBUG] Textos cargados de spaCy: {len(textos_spacy)} textos")
 
-            respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy)) if textos_spacy else "⚠️ No se encontraron documentos relevantes con spaCy."
+            respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy)) if textos_spacy else "No se encontraron documentos relevantes con spaCy."
             print(f"[DEBUG] Respuesta de spaCy: {respuesta_spacy}")
 
             cypher = generar_cypher(pregunta)
@@ -333,13 +333,13 @@ if __name__ == "__main__":
             textos_cypher = load_text_from_docs(documentos_cypher)
             print(f"[DEBUG] Textos cargados de Cypher: {len(textos_cypher)} textos")
 
-            respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher)) if textos_cypher else "⚠️ No se encontraron documentos relevantes con Cypher."
+            respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher)) if textos_cypher else "No se encontraron documentos relevantes con Cypher."
             print(f"[DEBUG] Respuesta de Cypher: {respuesta_cypher}")
 
             contexto_vectorial, fuentes_vectoriales = buscar_texto_relevante(pregunta)
             print(f"[DEBUG] Resultados de ChromaDB: {contexto_vectorial}")
 
-            respuesta_vectorial = generate_answer(pregunta, contexto_vectorial) if contexto_vectorial.strip() else "⚠️ No se encontraron documentos con ChromaDB."
+            respuesta_vectorial = generate_answer(pregunta, contexto_vectorial) if contexto_vectorial.strip() else "No se encontraron documentos con ChromaDB."
             print(f"[DEBUG] Respuesta de ChromaDB: {respuesta_vectorial}")
 
             documentos_usados = set()
@@ -350,7 +350,7 @@ if __name__ == "__main__":
             textos_finales = load_text_from_docs(documentos_usados)
             print(f"[DEBUG] Textos finales: {len(textos_finales)} textos")
 
-            respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
+            respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "No se encontró contenido en ninguno de los métodos."
             print(f"[DEBUG] Respuesta final combinada: {respuesta_final_combinada}")
 
         except Exception as e:
@@ -361,22 +361,22 @@ if __name__ == "__main__":
         entidades = extract_entities(pregunta)
         documentos_entidades = find_documents_related_to_entities(entidades)
         textos_spacy = load_text_from_docs(documentos_entidades)
-        respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy)) if textos_spacy else "⚠️ No se encontraron documentos relevantes con spaCy."
+        respuesta_spacy = generate_answer(pregunta, "\n\n".join(textos_spacy)) if textos_spacy else "No se encontraron documentos relevantes con spaCy."
 
         cypher = generar_cypher(pregunta)
         documentos_cypher = run_cypher(cypher)
         textos_cypher = load_text_from_docs(documentos_cypher)
-        respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher)) if textos_cypher else "⚠️ No se encontraron documentos relevantes con Cypher."
+        respuesta_cypher = generate_answer(pregunta, "\n\n".join(textos_cypher)) if textos_cypher else "No se encontraron documentos relevantes con Cypher."
 
         contexto_vectorial, fuentes_vectoriales = buscar_texto_relevante(pregunta)
-        respuesta_vectorial = generate_answer(pregunta, contexto_vectorial) if contexto_vectorial.strip() else "⚠️ No se encontraron documentos con ChromaDB."
+        respuesta_vectorial = generate_answer(pregunta, contexto_vectorial) if contexto_vectorial.strip() else "No se encontraron documentos con ChromaDB."
 
         documentos_usados = set()
         documentos_usados.update(documentos_entidades)
         documentos_usados.update(documentos_cypher)
         documentos_usados.update(fuentes_vectoriales)
         textos_finales = load_text_from_docs(list(documentos_usados))
-        respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "⚠️ No se encontró contenido en ninguno de los métodos."
+        respuesta_final_combinada = generate_answer(pregunta, "\n".join(textos_finales)) if textos_finales else "No se encontró contenido en ninguno de los métodos."
 
         print("=== Respuesta basada en grafos por detección de entidades en la pregunta ===")
         print(f"[Documentos usados: {[name for name, _ in documentos_entidades]}]")
